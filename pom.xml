@@ -97,6 +97,7 @@
   <properties>
     <tycho.version>1.0.0</tycho.version>
     <tycho-extras.version>1.0.0</tycho-extras.version>
+    <tycho.timestampProvider>jgit</tycho.timestampProvider>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <eclipse.target>mars</eclipse.target>
 
@@ -282,7 +283,7 @@
           </dependency>
         </dependencies>
         <configuration>
-          <timestampProvider>jgit</timestampProvider>
+          <timestampProvider>${tycho.timestampProvider}</timestampProvider>
           <jgit.dirtyWorkingTree>${jgit.dirtyWorkingTree}</jgit.dirtyWorkingTree>
           <jgit.ignore>
             pom.xml
@@ -366,6 +367,17 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>2.12.4</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.0.2</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.eclipse.scout</groupId>
+          <artifactId>eclipse-settings-maven-plugin</artifactId>
+          <version>3.0.2</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -520,6 +532,37 @@
               </artifact>
             </target>
            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <!-- copies our .settings files to all source projects -->
+      <id>copy-bundle-development-settings</id>
+      <activation>
+        <file><exists>META-INF/MANIFEST.MF</exists></file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.eclipse.scout</groupId>
+            <artifactId>eclipse-settings-maven-plugin</artifactId>
+            <dependencies>
+              <dependency>
+                <groupId>com.google.cloud.tools.eclipse</groupId>
+                <artifactId>eclipse-settings</artifactId>
+                <version>0.1.0-SNAPSHOT</version>
+              </dependency>
+            </dependencies>
+            <executions>
+              <execution>
+                <id>attach-eclipse-settings</id>
+                <goals>
+                  <goal>eclipse-settings</goal>
+                </goals>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
