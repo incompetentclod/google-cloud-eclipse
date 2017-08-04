@@ -30,6 +30,7 @@
 
   <modules>
     <module>gcp-repo</module>
+    <module>eclipse/settings</module>
     <module>features/com.google.cloud.tools.eclipse.suite.e45.feature</module>
     <module>features/com.google.cloud.tools.eclipse.3rdparty.feature</module>
     <module>features/com.google.licenses.apache_v2</module>
@@ -563,6 +564,30 @@
                 </goals>
               </execution>
             </executions>
+            <configuration>
+              <additionalConfig>
+                <file>
+                  <location>/org.eclipse.core.resources.prefs</location>
+                  <name>.settings/org.eclipse.core.resources.prefs</name>
+                </file>
+                <file>
+                  <location>/org.eclipse.jdt.core.prefs</location>
+                  <name>.settings/org.eclipse.jdt.core.prefs</name>
+                </file>
+                <file>
+                  <location>/org.eclipse.jdt.launching.prefs</location>
+                  <name>.settings/org.eclipse.jdt.launching.prefs</name>
+                </file>
+                <file>
+                  <location>/org.eclipse.jdt.ui.prefs</location>
+                  <name>.settings/org.eclipse.jdt.ui.prefs</name>
+                </file>
+                <file>
+                  <location>/org.eclipse.m2e.core.prefs</location>
+                  <name>.settings/org.eclipse.m2e.core.prefs</name>
+                </file>
+              </additionalConfig>
+            </configuration>
           </plugin>
         </plugins>
       </build>
