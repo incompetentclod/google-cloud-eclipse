@@ -30,7 +30,6 @@
 
   <modules>
     <module>gcp-repo</module>
-    <module>eclipse/settings</module>
     <module>features/com.google.cloud.tools.eclipse.suite.e45.feature</module>
     <module>features/com.google.cloud.tools.eclipse.3rdparty.feature</module>
     <module>features/com.google.licenses.apache_v2</module>
@@ -98,7 +97,6 @@
   <properties>
     <tycho.version>1.0.0</tycho.version>
     <tycho-extras.version>1.0.0</tycho-extras.version>
-    <tycho.timestampProvider>jgit</tycho.timestampProvider>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <eclipse.target>mars</eclipse.target>
 
@@ -284,7 +282,7 @@
           </dependency>
         </dependencies>
         <configuration>
-          <timestampProvider>${tycho.timestampProvider}</timestampProvider>
+          <timestampProvider>jgit</timestampProvider>
           <jgit.dirtyWorkingTree>${jgit.dirtyWorkingTree}</jgit.dirtyWorkingTree>
           <jgit.ignore>
             pom.xml
