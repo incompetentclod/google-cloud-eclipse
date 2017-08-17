@@ -266,6 +266,21 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
   @Override
   public void performApply(ILaunchConfigurationWorkingCopy configuration) {
+    try {
+      // This project name may be different from what is currently saved in "launchConfiguration".
+      String newProjectName = configuration.getAttribute(
+          IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, (String) null);
+      IProject project = getProject(newProjectName);
+
+      MajorVersion newMajorVersion = getProjectMajorVersion(project);
+      MajorVersion majorVersion = getProjectMajorVersion(getProject());
+      if (!newMajorVersion.equals(majorVersion)) {
+        updateRunnerButtons(newMajorVersion);
+      }
+    } catch (CoreException e) {
+      // A rare case of getAttribute() failing. Give up updating runner radio buttons.
+    }
+
     PipelineRunner runner = getSelectedRunner();
     launchConfiguration.setRunner(runner);
 
@@ -293,20 +308,24 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     throw new IllegalStateException("No runner selected, but a runner starts selected"); //$NON-NLS-1$
   }
 
+  private MajorVersion getProjectMajorVersion(IProject project) {
+    MajorVersion majorVersion = MajorVersion.ONE;
+    if (project != null && project.isAccessible()) {
+       majorVersion = dependencyManager.getProjectMajorVersion(project);
+       if (majorVersion == null) {
+          majorVersion = MajorVersion.ONE;
+       }
+    }
+    return majorVersion;
+  }
+
   @Override
   public void initializeFrom(ILaunchConfiguration configuration) {
     try {
       launchConfiguration = PipelineLaunchConfiguration.fromLaunchConfiguration(configuration);
 
       IProject project = getProject();
-      MajorVersion majorVersion = MajorVersion.ONE;
-      if (project != null && project.isAccessible()) {
-         majorVersion = dependencyManager.getProjectMajorVersion(project);
-         if (majorVersion == null) {
-            majorVersion = MajorVersion.ONE;
-         }
-      }
-
+      MajorVersion majorVersion = getProjectMajorVersion(project);
       updateRunnerButtons(majorVersion);
       updateHierarchy(majorVersion);
 
@@ -382,8 +401,11 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   private IProject getProject() {
-    String eclipseProjectName = launchConfiguration.getEclipseProjectName();
-    if (eclipseProjectName != null && !eclipseProjectName.isEmpty()) {
+    return getProject(launchConfiguration.getEclipseProjectName());
+  }
+
+  private IProject getProject(String eclipseProjectName) {
+    if (!Strings.isNullOrEmpty(eclipseProjectName)) {
       return workspaceRoot.getProject(eclipseProjectName);
     }
     return null;
