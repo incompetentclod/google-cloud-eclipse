@@ -61,6 +61,7 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
 import org.eclipse.debug.ui.AbstractLaunchConfigurationTab;
+import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
@@ -163,7 +164,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
     userOptionsSelector = new TextAndButtonComponent(
         runnerOptionsGroup,
-        new GridData(SWT.FILL, SWT.BEGINNING, true, false), 
+        new GridData(SWT.FILL, SWT.BEGINNING, true, false),
         Messages.getString("search")); //$NON-NLS-1$
     userOptionsSelector.addButtonSelectionListener(openPipelineOptionsSearchListener());
 
@@ -339,7 +340,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
       updatePipelineOptionsForm();
     } catch (CoreException ex) {
       // TODO: Handle
-      DataflowUiPlugin.logError(ex, 
+      DataflowUiPlugin.logError(ex,
           "Error while initializing from existing configuration"); //$NON-NLS-1$
     }
   }
