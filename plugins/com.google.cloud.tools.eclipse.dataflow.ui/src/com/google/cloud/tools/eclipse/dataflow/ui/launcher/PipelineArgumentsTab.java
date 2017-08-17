@@ -299,7 +299,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
       IProject project = getProject(newProjectName);
 
       MajorVersion newMajorVersion = getProjectMajorVersion(project);
-      MajorVersion majorVersion = getProjectMajorVersion(getProject());
+      MajorVersion majorVersion = getProjectMajorVersion(getLaunchConfigurationProject());
       if (!newMajorVersion.equals(majorVersion)) {
         updateRunnerButtons(newMajorVersion);
       }
@@ -334,7 +334,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     try {
       launchConfiguration = PipelineLaunchConfiguration.fromLaunchConfiguration(configuration);
 
-      IProject project = getProject();
+      IProject project = getLaunchConfigurationProject();
       MajorVersion majorVersion = getProjectMajorVersion(project);
       updateRunnerButtons(majorVersion);
       updateHierarchy(majorVersion);
@@ -387,7 +387,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   private DataflowPreferences getPreferences() {
-    IProject project = getProject();
+    IProject project = getLaunchConfigurationProject();
     if (project != null && project.isAccessible()) {
       return ProjectOrWorkspaceDataflowPreferences.forProject(project);
     } else {
@@ -397,7 +397,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
   private PipelineOptionsHierarchy getPipelineOptionsHierarchy(
       MajorVersion majorVersion, IProgressMonitor monitor) {
-    IProject project = getProject();
+    IProject project = getLaunchConfigurationProject();
     if (project != null && project.isAccessible()) {
       try {
         return pipelineOptionsHierarchyFactory.forProject(project, majorVersion, monitor);
@@ -410,7 +410,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     return pipelineOptionsHierarchyFactory.global(monitor);
   }
 
-  private IProject getProject() {
+  private IProject getLaunchConfigurationProject() {
     return getProject(launchConfiguration.getEclipseProjectName());
   }
 
