@@ -267,20 +267,8 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
   @Override
   public void performApply(ILaunchConfigurationWorkingCopy configuration) {
-    try {
-      // This project name may be different from what is currently saved in "launchConfiguration".
-      String newProjectName = configuration.getAttribute(
-          IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, (String) null);
-      IProject project = getProject(newProjectName);
-
-      MajorVersion newMajorVersion = getProjectMajorVersion(project);
-      MajorVersion majorVersion = getProjectMajorVersion(getProject());
-      if (!newMajorVersion.equals(majorVersion)) {
-        updateRunnerButtons(newMajorVersion);
-      }
-    } catch (CoreException e) {
-      // A rare case of getAttribute() failing. Give up updating runner radio buttons.
-    }
+    // For fixing https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/2232#issuecomment-320368325
+    updateRunnerButtonsIfProjectChanged(configuration);
 
     PipelineRunner runner = getSelectedRunner();
     launchConfiguration.setRunner(runner);
@@ -297,6 +285,27 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     launchConfiguration.setUserOptionsName(userOptionsSelector.getText());
 
     launchConfiguration.toLaunchConfiguration(configuration);
+  }
+
+  // If a user entered a new project name and is about to "Apply" the change, we should check if the
+  // new project implies a different Dataflow major version than the version from the project saved
+  // in "launchConfiguration". If so, we update the runner radio buttons, so that we don't end up
+  // saving an incompatible runner from the old project.
+  private void updateRunnerButtonsIfProjectChanged(ILaunchConfigurationWorkingCopy configuration) {
+    try {
+      // This project name may be different from what is currently saved in "launchConfiguration".
+      String newProjectName = configuration.getAttribute(
+          IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, (String) null);
+      IProject project = getProject(newProjectName);
+
+      MajorVersion newMajorVersion = getProjectMajorVersion(project);
+      MajorVersion majorVersion = getProjectMajorVersion(getProject());
+      if (!newMajorVersion.equals(majorVersion)) {
+        updateRunnerButtons(newMajorVersion);
+      }
+    } catch (CoreException e) {
+      // A rare case of getAttribute() failing. Give up updating runner radio buttons.
+    }
   }
 
   @VisibleForTesting
