@@ -17,7 +17,6 @@
 package com.google.cloud.tools.eclipse.util;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.aether.resolution.ArtifactResult;
@@ -31,15 +30,24 @@ import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyFilter;
 import org.eclipse.aether.impl.DefaultServiceLocator;
-import org.eclipse.aether.internal.impl.DefaultRepositorySystem;
 import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
 import org.eclipse.aether.spi.connector.transport.TransporterFactory;
+import org.eclipse.aether.transport.wagon.WagonTransporterFactory;
 import org.eclipse.aether.util.artifact.JavaScopes;
 import org.eclipse.aether.util.filter.DependencyFilterUtils;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.m2e.core.MavenPlugin;
+import org.eclipse.m2e.core.embedder.ICallable;
+import org.eclipse.m2e.core.embedder.IMavenExecutionContext;
+
+import com.google.cloud.tools.eclipse.util.status.StatusUtil;
+
 import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory;
 // import org.eclipse.aether.transport.file.FileTransporterFactory;
 // import org.eclipse.aether.transport.http.HttpTransporterFactory;
@@ -48,10 +56,8 @@ import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory;
 public class DependencyResolver {
 
   public static List<String> getTransitiveDependencies(
-      String groupId, String artifactId, String version) throws DependencyResolutionException {
-    
-    List<String> dependencies = new ArrayList<>();
-   
+      String groupId, String artifactId, String version) throws DependencyResolutionException, CoreException {
+       
     Artifact artifact = new DefaultArtifact(groupId + ":" + artifactId + ":" + version);
 
     DependencyFilter filter = DependencyFilterUtils.classpathFilter(JavaScopes.COMPILE);
@@ -59,25 +65,45 @@ public class DependencyResolver {
     CollectRequest collectRequest = new CollectRequest();
     collectRequest.setRoot( new Dependency(artifact, JavaScopes.COMPILE));
     
-    RepositorySystem system = newRepositorySystem();
-    RepositorySystemSession session = newRepositorySystemSession(system);    
-    collectRequest.setRepositories(newRepositories(system, session));
-    DependencyRequest request = new DependencyRequest(collectRequest, filter);
+    final RepositorySystem system = newRepositorySystem();
+    // RepositorySystem system = MavenPluginActivator.getDefault().getRepositorySystem();
+    collectRequest.setRepositories(newRepositories(system));
+    final DependencyRequest request = new DependencyRequest(collectRequest, filter);
 
-    List<ArtifactResult> artifacts =
-        system.resolveDependencies(session, request).getArtifactResults();
-    for (ArtifactResult result : artifacts) {
-      dependencies.add(result.toString());
-    }
+    IMavenExecutionContext context = MavenPlugin.getMaven().createExecutionContext();
     
-    return dependencies;
+    ICallable<List<String>> callable = new ICallable<List<String>>() {
+      @Override
+      public List<String> call(IMavenExecutionContext context, IProgressMonitor monitor)
+          throws CoreException {
+        List<String> dependencies = new ArrayList<>();
+        RepositorySystemSession session = context.getRepositorySession();
+        try {
+          List<ArtifactResult> artifacts =
+              system.resolveDependencies(session, request).getArtifactResults();
+          for (ArtifactResult result : artifacts) {
+            dependencies.add(result.toString());
+          }
+          return dependencies;
+        } catch (DependencyResolutionException ex) {
+          throw new CoreException(StatusUtil.error(ex, "Ooops"));
+        }
+      }
+      
+    };
+    List<String> x = context.execute(callable, new NullProgressMonitor());
+    return x;
+    // RepositorySystemSession session = newRepositorySystemSession(system);    
+
+
   }
 
-  static RepositorySystem newRepositorySystem() {
+  private static RepositorySystem newRepositorySystem() {
     DefaultServiceLocator locator = MavenRepositorySystemUtils.newServiceLocator();
     locator.addService(RepositoryConnectorFactory.class, BasicRepositoryConnectorFactory.class);
     // locator.addService(TransporterFactory.class, FileTransporterFactory.class);
-    // locator.addService(TransporterFactory.class, HttpTransporterFactory.class);*/
+    // locator.addService(TransporterFactory.class, HttpTransporterFactory.class);
+     locator.addService(TransporterFactory.class, WagonTransporterFactory.class);
 
     locator.setErrorHandler(new DefaultServiceLocator.ErrorHandler() {
       @Override
@@ -85,12 +111,11 @@ public class DependencyResolver {
         ex.printStackTrace();
       }
     });
-    DefaultRepositorySystem de = new DefaultRepositorySystem();
-    return de;
-   // return locator.getService(RepositorySystem.class);
+
+    return locator.getService(RepositorySystem.class);
   }
 
-   static DefaultRepositorySystemSession newRepositorySystemSession(RepositorySystem system) {
+   private static DefaultRepositorySystemSession newRepositorySystemSession(RepositorySystem system) {
       DefaultRepositorySystemSession session = MavenRepositorySystemUtils.newSession();
 
     LocalRepository localRepository = new LocalRepository("target/local-repo");
@@ -103,7 +128,7 @@ public class DependencyResolver {
       return session;
   }
 
-  static List<RemoteRepository> newRepositories(RepositorySystem system, RepositorySystemSession session) {
+  private static List<RemoteRepository> newRepositories(RepositorySystem system) {
     RemoteRepository.Builder builder =
         new RemoteRepository.Builder("central", "default", "https://repo.maven.apache.org/maven2/");
     RemoteRepository repository = builder.build();

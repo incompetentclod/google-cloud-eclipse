@@ -19,13 +19,14 @@ package com.google.cloud.tools.eclipse.util;
 import java.util.List;
 
 import org.eclipse.aether.resolution.DependencyResolutionException;
+import org.eclipse.core.runtime.CoreException;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class DependencyResolverTest {
 
   @Test
-  public void testResolve() throws DependencyResolutionException {
+  public void testResolve() throws DependencyResolutionException, CoreException {
     List<String> dependencies = DependencyResolver.getTransitiveDependencies(
         "com.google.cloud", "google-cloud-storage", "1.4.0");
     Assert.assertFalse(dependencies.isEmpty());
