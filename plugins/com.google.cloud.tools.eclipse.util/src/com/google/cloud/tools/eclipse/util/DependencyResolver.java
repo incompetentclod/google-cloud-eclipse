@@ -16,10 +16,9 @@
 
 package com.google.cloud.tools.eclipse.util;
 
+import com.google.cloud.tools.eclipse.util.status.StatusUtil;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.eclipse.aether.resolution.ArtifactResult;
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
@@ -27,11 +26,15 @@ import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.collection.CollectRequest;
+import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory;
+// import org.eclipse.aether.transport.file.FileTransporterFactory;
+// import org.eclipse.aether.transport.http.HttpTransporterFactory;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyFilter;
 import org.eclipse.aether.impl.DefaultServiceLocator;
 import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
@@ -45,12 +48,7 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.m2e.core.MavenPlugin;
 import org.eclipse.m2e.core.embedder.ICallable;
 import org.eclipse.m2e.core.embedder.IMavenExecutionContext;
-
-import com.google.cloud.tools.eclipse.util.status.StatusUtil;
-
-import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory;
-// import org.eclipse.aether.transport.file.FileTransporterFactory;
-// import org.eclipse.aether.transport.http.HttpTransporterFactory;
+import org.eclipse.m2e.core.internal.MavenPluginActivator;
 
 
 public class DependencyResolver {
@@ -58,18 +56,10 @@ public class DependencyResolver {
   public static List<String> getTransitiveDependencies(
       String groupId, String artifactId, String version) throws DependencyResolutionException, CoreException {
        
-    Artifact artifact = new DefaultArtifact(groupId + ":" + artifactId + ":" + version);
+    final Artifact artifact = new DefaultArtifact(groupId + ":" + artifactId + ":" + version);
 
-    DependencyFilter filter = DependencyFilterUtils.classpathFilter(JavaScopes.COMPILE);
-
-    CollectRequest collectRequest = new CollectRequest();
-    collectRequest.setRoot( new Dependency(artifact, JavaScopes.COMPILE));
-    
-    final RepositorySystem system = newRepositorySystem();
+//    final RepositorySystem system = newRepositorySystem();
     // RepositorySystem system = MavenPluginActivator.getDefault().getRepositorySystem();
-    collectRequest.setRepositories(newRepositories(system));
-    final DependencyRequest request = new DependencyRequest(collectRequest, filter);
-
     IMavenExecutionContext context = MavenPlugin.getMaven().createExecutionContext();
     
     ICallable<List<String>> callable = new ICallable<List<String>>() {
@@ -77,7 +67,15 @@ public class DependencyResolver {
       public List<String> call(IMavenExecutionContext context, IProgressMonitor monitor)
           throws CoreException {
         List<String> dependencies = new ArrayList<>();
+        DependencyFilter filter = DependencyFilterUtils.classpathFilter(JavaScopes.COMPILE);
+        RepositorySystem system = MavenPluginActivator.getDefault().getRepositorySystem();
+        
+        CollectRequest collectRequest = new CollectRequest();
+        collectRequest.setRoot( new Dependency(artifact, JavaScopes.COMPILE));
+        collectRequest.setRepositories(newRepositories(system));
+        final DependencyRequest request = new DependencyRequest(collectRequest, filter);
         RepositorySystemSession session = context.getRepositorySession();
+
         try {
           List<ArtifactResult> artifacts =
               system.resolveDependencies(session, request).getArtifactResults();
