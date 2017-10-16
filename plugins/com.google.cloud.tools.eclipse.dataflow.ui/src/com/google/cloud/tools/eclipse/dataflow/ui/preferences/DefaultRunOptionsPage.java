@@ -72,7 +72,7 @@ public class DefaultRunOptionsPage
    */
   private void updatePreferencesFromInputs() {
     preferences.setDefaultAccountEmail(runOptionsComponent.getAccountEmail());
-    preferences.setDefaultProject(runOptionsComponent.getProject());
+    preferences.setDefaultProject(runOptionsComponent.getProjectId());
     preferences.setDefaultStagingLocation(runOptionsComponent.getStagingLocation());
   }
 

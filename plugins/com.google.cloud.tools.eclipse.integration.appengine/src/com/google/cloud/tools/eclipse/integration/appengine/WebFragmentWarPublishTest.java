@@ -16,72 +16,21 @@
 
 package com.google.cloud.tools.eclipse.integration.appengine;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import com.google.cloud.tools.eclipse.appengine.deploy.WarPublisher;
-import com.google.cloud.tools.eclipse.test.util.ZipUtil;
-import com.google.cloud.tools.eclipse.test.util.project.ProjectUtils;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
-import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IFolder;
-import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.NullProgressMonitor;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Test;
 
-public class WebFragmentWarPublishTest {
-
-  private static final IProgressMonitor monitor = new NullProgressMonitor();
-  private static IProject project;
+public class WebFragmentWarPublishTest extends ChildModuleWarPublishTest {
 
   @BeforeClass
   public static void setUp() throws IOException, CoreException {
-    List<IProject> projects = ProjectUtils.importProjects(WebFragmentWarPublishTest.class,
-        "test-projects/web-fragment-example.zip", false /* checkBuildErrors */, monitor);
-    assertEquals(1, projects.size());
-    project = projects.get(0);
+    loadTestProjectZip("test-projects/web-fragment-example.zip", "web-fragment-example");
   }
 
-  @AfterClass
-  public static void tearDown() throws CoreException {
-    if (project != null) {
-      ProjectUtils.waitForProjects(project);
-      project.delete(true, null);
-    }
-  }
-
-  @Test
-  public void testPublishExploded_webFragmentJarPublished() throws CoreException {
-    IFolder exploded = project.getFolder("exploded-war");
-    try {
-      WarPublisher.publishExploded(project, exploded.getLocation(), monitor);
-
-      exploded.refreshLocal(IResource.DEPTH_INFINITE, monitor);
-      assertTrue(exploded.getFile("WEB-INF/lib/spring-web-4.3.8.RELEASE.jar").exists());
-    } finally {
-      exploded.delete(true, monitor);
-    }
-  }
-
-  @Test
-  public void testPublishWar_webFragmentJarPublished() throws CoreException {
-    IFile war = project.getFile("my-app.war");
-    IFolder unzipped = project.getFolder("unzipped");
-    try {
-      WarPublisher.publishWar(project, war.getLocation(), monitor);
-
-      ZipUtil.unzip(war.getLocation().toFile(), unzipped.getLocation().toFile(), monitor);
-      unzipped.refreshLocal(IResource.DEPTH_INFINITE, monitor);
-      assertTrue(unzipped.getFile("WEB-INF/lib/spring-web-4.3.8.RELEASE.jar").exists());
-    } finally {
-      war.delete(true, monitor);
-      unzipped.delete(true, monitor);
-    }
+  @Override
+  protected List<String> getExpectedChildModuleNames() {
+    return Collections.singletonList("spring-web-4.3.8.RELEASE.jar");
   }
 }

@@ -17,19 +17,27 @@
 package com.google.cloud.tools.eclipse.util;
 
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
+
 import org.junit.Assert;
 import org.junit.Test;
 
 public class ArtifactRetrieverTest {
   
-  private ArtifactRetriever retriever = new ArtifactRetriever();
-  
+  @Test
+  public void testGetInstance() throws URISyntaxException {
+    ArtifactRetriever retriever1 = ArtifactRetriever.getInstance("http://www.example.com/");
+    Assert.assertNotNull(retriever1);
+    ArtifactRetriever retriever2 = ArtifactRetriever.getInstance("http://www.example.com/");
+    Assert.assertSame(retriever1, retriever2);
+  }
+
   @Test
   public void testGetMetadataUrl() throws MalformedURLException {
     Assert.assertEquals(
         new URL("https://repo1.maven.org/maven2/com/google/foo/bar-baz/maven-metadata.xml"),
-        retriever.getMetadataUrl("com.google.foo", "bar-baz"));
+        ArtifactRetriever.DEFAULT.getMetadataUrl("com.google.foo", "bar-baz"));
   }
 
   @Test
@@ -47,4 +55,5 @@ public class ArtifactRetrieverTest {
     Assert.assertEquals("com.google.cloud.dataflow", actual[0]);
     Assert.assertEquals("google-cloud-dataflow-java-sdk-all", actual[1]);
   }
+  
 }

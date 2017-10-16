@@ -19,11 +19,22 @@ package com.google.cloud.tools.eclipse.dataflow.core.project;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.cloud.tools.eclipse.util.MavenCoordinatesValidator;
+
 public class DataflowProjectCreatorTest {
 
   @Test
   public void testCreate() {
     Assert.assertNotNull(DataflowProjectCreator.create());
+  }
+  
+  @Test
+  public void testTemplates() {
+    for (DataflowProjectArchetype template : DataflowProjectArchetype.values()) {
+      Assert.assertTrue(MavenCoordinatesValidator.validateArtifactId(template.getArtifactId()));
+      Assert.assertFalse(template.getSdkVersions().isEmpty());
+      Assert.assertFalse(template.getLabel().isEmpty());
+    }
   }
 
 }
