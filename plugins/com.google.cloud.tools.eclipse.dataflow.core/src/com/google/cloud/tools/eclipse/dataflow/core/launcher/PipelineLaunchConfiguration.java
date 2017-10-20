@@ -19,7 +19,6 @@ package com.google.cloud.tools.eclipse.dataflow.core.launcher;
 import static com.google.cloud.tools.eclipse.dataflow.core.launcher.PipelineRunner.DIRECT_PIPELINE_RUNNER;
 import static com.google.cloud.tools.eclipse.dataflow.core.launcher.PipelineRunner.DIRECT_RUNNER;
 
-import com.google.cloud.tools.eclipse.dataflow.core.DataflowCorePlugin;
 import com.google.cloud.tools.eclipse.dataflow.core.launcher.options.PipelineOptionsHierarchy;
 import com.google.cloud.tools.eclipse.dataflow.core.launcher.options.PipelineOptionsProperty;
 import com.google.cloud.tools.eclipse.dataflow.core.launcher.options.PipelineOptionsType;
@@ -38,7 +37,6 @@ import java.util.Set;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
-import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
 
 /**
  * A POJO that contains options specific to launching a dataflow pipeline.
@@ -49,8 +47,6 @@ public class PipelineLaunchConfiguration {
    */
   static final Set<String> PROVIDED_PROPERTY_NAMES = ImmutableSet.of("runner");
 
-  private Optional<String> eclipseProjectName;
-
   private boolean useDefaultLaunchOptions;
 
   private PipelineRunner runner;
@@ -58,17 +54,23 @@ public class PipelineLaunchConfiguration {
   private Optional<String> userOptionsName;
 
   /**
-   * Construct a DataflowPipelineLaunchConfiguration from the provided {@link ILaunchConfiguration}.
+   * Construct a DataflowPipelineLaunchConfiguration from the provided {@link ILaunchConfiguration}
+   * using the provided project version to determine suitable defaults.
    */
   public static PipelineLaunchConfiguration fromLaunchConfiguration(
-      ILaunchConfiguration launchConfiguration) throws CoreException {
-    PipelineLaunchConfiguration configuration = createDefault();
+      ILaunchConfiguration launchConfiguration, MajorVersion projectVersion) throws CoreException {
+    PipelineLaunchConfiguration configuration =
+        new PipelineLaunchConfiguration(defaultRunner(projectVersion));
     configuration.setValuesFromLaunchConfiguration(launchConfiguration);
     return configuration;
   }
 
   public static PipelineLaunchConfiguration createDefault() {
-    return new PipelineLaunchConfiguration(defaultRunner(MajorVersion.ONE));
+    return createDefault(MajorVersion.ONE);
+  }
+
+  public static PipelineLaunchConfiguration createDefault(MajorVersion version) {
+    return new PipelineLaunchConfiguration(defaultRunner(version));
   }
 
   public static PipelineRunner defaultRunner(MajorVersion majorVersion) {
@@ -87,7 +89,6 @@ public class PipelineLaunchConfiguration {
     this.useDefaultLaunchOptions = true;
 
     this.userOptionsName = Optional.absent();
-    this.eclipseProjectName = Optional.absent();
   }
 
   public PipelineRunner getRunner() {
@@ -122,16 +123,6 @@ public class PipelineLaunchConfiguration {
     this.useDefaultLaunchOptions = useDefaultLaunchOptions;
   }
 
-  public String getEclipseProjectName() {
-    return eclipseProjectName.orNull();
-  }
-
-  private void setEclipseProjectName(ILaunchConfiguration configuration) throws CoreException {
-    eclipseProjectName = Optional.fromNullable(
-        configuration.getAttribute(
-            IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, (String) null));
-  }
-
   private void setValuesFromLaunchConfiguration(ILaunchConfiguration configuration)
       throws CoreException {
     setRunner(PipelineRunner.fromRunnerName(configuration.getAttribute(
@@ -146,8 +137,6 @@ public class PipelineLaunchConfiguration {
 
     setUserOptionsName(configuration.getAttribute(
         PipelineConfigurationAttr.USER_OPTIONS_NAME.toString(), getUserOptionsName()));
-
-    setEclipseProjectName(configuration);
   }
 
   /**
@@ -163,13 +152,6 @@ public class PipelineLaunchConfiguration {
         PipelineConfigurationAttr.ALL_ARGUMENT_VALUES.toString(), argumentValues);
     configuration.setAttribute(
         PipelineConfigurationAttr.USER_OPTIONS_NAME.toString(), userOptionsName.orNull());
-
-    try {
-      setEclipseProjectName(configuration);
-    } catch (CoreException e) {
-      DataflowCorePlugin.logWarning("CoreException while trying to retrieve"
-          + " project name from Configuration Working Copy");
-    }
   }
 
   /**

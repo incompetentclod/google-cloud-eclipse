@@ -17,6 +17,7 @@
 package com.google.cloud.tools.eclipse.dataflow.ui.launcher;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
@@ -31,6 +32,9 @@ import com.google.cloud.tools.eclipse.test.util.ui.CompositeUtil;
 import com.google.cloud.tools.eclipse.test.util.ui.ShellTestResource;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.Map;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.runtime.CoreException;
@@ -87,6 +91,32 @@ public class PipelineArgumentsTabTest {
       tab.initializeFrom(configuration);  // Should not throw NPE.
 
       ProjectUtils.waitForProjects();  // Suppress some non-terminated-job error logs
+    }
+
+    @Test
+    public void testReinitialize()
+        throws CoreException, InvocationTargetException, InterruptedException {
+      IWorkspaceRoot workspaceRoot = mock(IWorkspaceRoot.class);
+      when(workspaceRoot.getProject(anyString())).thenReturn(mock(IProject.class));
+      ILaunchConfigurationDialog dialog = mock(ILaunchConfigurationDialog.class);
+
+      ILaunchConfiguration configuration1 = mock(ILaunchConfiguration.class);
+      Map<String, Object> attributes1 = new HashMap<String, Object>();
+      when(configuration1.getAttributes()).thenReturn(attributes1);
+      ILaunchConfiguration configuration2 = mock(ILaunchConfiguration.class);
+      Map<String, Object> attributes2 = new HashMap<String, Object>();
+      when(configuration2.getAttributes()).thenReturn(attributes2);
+
+      PipelineArgumentsTab tab = new PipelineArgumentsTab(workspaceRoot);
+      tab.setLaunchConfigurationDialog(dialog);
+      tab.createControl(shellResource.getShell());
+
+      assertTrue(tab.reinitialize(configuration1));
+      assertFalse("cache should be ok", tab.reinitialize(configuration1));
+      attributes1.put("foo", "bar");
+      assertTrue("config changed, cache should be discarded", tab.reinitialize(configuration1));
+      assertTrue("different config; cache should be discarded", tab.reinitialize(configuration2));
+      assertTrue("config changed, cache should be discarded", tab.reinitialize(configuration1));
     }
   }
 

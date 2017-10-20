@@ -112,10 +112,10 @@ public class DataflowPipelineLaunchDelegate implements ILaunchConfigurationDeleg
       ILaunchConfiguration configuration, String mode, ILaunch launch, IProgressMonitor monitor)
       throws CoreException {
     SubMonitor progress = SubMonitor.convert(monitor, 3);
-    PipelineLaunchConfiguration pipelineConfig =
-        PipelineLaunchConfiguration.fromLaunchConfiguration(configuration);
 
-    String projectName = pipelineConfig.getEclipseProjectName();
+    String projectName =
+        configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, "");
+    checkArgument(!projectName.isEmpty(), "Cannot determine project");
     IProject project = workspaceRoot.getProject(projectName);
     checkArgument(
         project.exists(),
@@ -124,6 +124,8 @@ public class DataflowPipelineLaunchDelegate implements ILaunchConfigurationDeleg
         configuration.getAttributes());
     MajorVersion majorVersion = dependencyManager.getProjectMajorVersion(project);
 
+    PipelineLaunchConfiguration pipelineConfig =
+        PipelineLaunchConfiguration.fromLaunchConfiguration(configuration, majorVersion);
     PipelineOptionsHierarchy hierarchy;
     try {
       hierarchy = optionsRetrieverFactory.forProject(project, majorVersion, progress.newChild(1));

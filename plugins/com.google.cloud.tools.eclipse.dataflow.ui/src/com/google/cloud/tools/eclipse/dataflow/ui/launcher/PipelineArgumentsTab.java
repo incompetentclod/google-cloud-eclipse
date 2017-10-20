@@ -59,6 +59,7 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
 import org.eclipse.debug.ui.AbstractLaunchConfigurationTab;
+import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
@@ -81,12 +82,19 @@ import org.eclipse.ui.forms.events.IExpansionListener;
 
 /**
  * A tab specifying arguments required to run a Dataflow Pipeline.
+ * 
+ * As computing the pipeline options hierarchy can be expensive, we try to cache values.
+ * {@link #reinitialize(ILaunchConfiguration)} is responsible for loading information derived from
+ * an {@link ILaunchConfiguration}. We null out all computed information in
+ * {@link #deactivated(ILaunchConfigurationWorkingCopy)}, called when the user switches to another
+ * tab.
  */
 public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private static final Joiner MISSING_GROUP_MEMBER_JOINER = Joiner.on(", "); //$NON-NLS-1$
 
   private static final String ARGUMENTS_SEPARATOR = "="; //$NON-NLS-1$
 
+  private final IWorkspaceRoot workspaceRoot;
   private Executor displayExecutor;
 
   private ScrolledComposite composite;
@@ -100,11 +108,14 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private TextAndButtonComponent userOptionsSelector;
   private PipelineOptionsFormComponent pipelineOptionsForm;
 
-  private PipelineLaunchConfiguration launchConfiguration;
-
   private final DataflowDependencyManager dependencyManager = DataflowDependencyManager.create();
   private final PipelineOptionsHierarchyFactory pipelineOptionsHierarchyFactory =
       new ClasspathPipelineOptionsHierarchyFactory();
+
+  private ILaunchConfiguration currentConfiguration;
+  private int currentConfigurationHash;
+  private IProject project;
+  private PipelineLaunchConfiguration launchConfiguration;
 
   /*
    * TODO: By default, this may include all PipelineOptions types, including custom user types that
@@ -114,7 +125,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
    */
   private PipelineOptionsHierarchy hierarchy;
 
-  private final IWorkspaceRoot workspaceRoot;
 
   public PipelineArgumentsTab() {
     this(ResourcesPlugin.getWorkspace().getRoot());
@@ -262,7 +272,9 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
   @Override
   public void setDefaults(ILaunchConfigurationWorkingCopy configuration) {
-    launchConfiguration = PipelineLaunchConfiguration.createDefault();
+    project = findProject(configuration);
+    MajorVersion version = getMajorVersion(project);
+    launchConfiguration = PipelineLaunchConfiguration.createDefault(version);
     launchConfiguration.toLaunchConfiguration(configuration);
   }
 
@@ -296,21 +308,24 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   @Override
+  public void deactivated(ILaunchConfigurationWorkingCopy workingCopy) {
+    // super.deactivated() calls performApply(), saving the PipelineLaunchConfiguration
+    // values into the ILaunchConfigurationWorkingCopy.
+    super.deactivated(workingCopy);
+    // null out all computed values that were derived from the ILaunchConfiguration;
+    // will force reinitialize() to recompute all values
+    currentConfiguration = null;
+    launchConfiguration = null;
+    project = null;
+    hierarchy = null;
+  }
+
+  @Override
   public void initializeFrom(ILaunchConfiguration configuration) {
     try {
-      launchConfiguration = PipelineLaunchConfiguration.fromLaunchConfiguration(configuration);
+      reinitialize(configuration);
 
-      IProject project = getProject();
-      MajorVersion majorVersion = MajorVersion.ONE;
-      if (project != null && project.isAccessible()) {
-         majorVersion = dependencyManager.getProjectMajorVersion(project);
-         if (majorVersion == null) {
-            majorVersion = MajorVersion.ONE;
-         }
-      }
-
-      updateRunnerButtons(majorVersion);
-      updateHierarchy(majorVersion);
+      updateRunnerButtons(getMajorVersion(project));
 
       defaultOptionsComponent.setUseDefaultValues(launchConfiguration.isUseDefaultLaunchOptions());
       defaultOptionsComponent.setPreferences(getPreferences());
@@ -326,6 +341,59 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
           "Error while initializing from existing configuration"); //$NON-NLS-1$
     }
   }
+
+  /**
+   * Reload computed information about the dataflow pipeline from the values in the given
+   * {@link ILaunchConfiguration}. As this is called from {{@link #isValid(ILaunchConfiguration)}},
+   * which is frequently called, try to avoid recomputing this information if unnecessary.
+   * 
+   * @return true if values were reloaded, or false if the configuration was up-to-date
+   */
+  @VisibleForTesting
+  boolean reinitialize(ILaunchConfiguration configuration)
+      throws CoreException, InvocationTargetException, InterruptedException {
+    // assume that Map#hashCode() hashes its elements, and possibly its elements' elements
+    int configurationHash = configuration.getAttributes().hashCode();
+    if (currentConfiguration == configuration && currentConfigurationHash == configurationHash) {
+      return false;
+    }
+    // null out in case of exception
+    currentConfiguration = null;
+    project = findProject(configuration);
+    MajorVersion majorVersion = getMajorVersion(project);
+    launchConfiguration =
+        PipelineLaunchConfiguration.fromLaunchConfiguration(configuration, majorVersion);
+    updateHierarchy(majorVersion);
+    currentConfiguration = configuration;
+    currentConfigurationHash = configurationHash;
+    return true;
+  }
+
+  private MajorVersion getMajorVersion(IProject project) {
+    MajorVersion majorVersion = MajorVersion.ONE;
+    if (project != null && project.isAccessible()) {
+       majorVersion = dependencyManager.getProjectMajorVersion(project);
+       if (majorVersion == null) {
+          majorVersion = MajorVersion.ONE;
+       }
+    }
+    return majorVersion;
+  }
+
+  private final IProject findProject(ILaunchConfiguration launchConfiguration) {
+    try {
+      String eclipseProjectName =
+          launchConfiguration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, "");
+      if (eclipseProjectName != null && !eclipseProjectName.isEmpty()) {
+        return workspaceRoot.getProject(eclipseProjectName);
+      }
+    } catch (CoreException ex) {
+      // ignore
+    }
+    return null;
+  }
+
+
 
   @VisibleForTesting
   void updateRunnerButtons(MajorVersion majorVersion) {
@@ -363,7 +431,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   private DataflowPreferences getPreferences() {
-    IProject project = getProject();
     if (project != null && project.isAccessible()) {
       return ProjectOrWorkspaceDataflowPreferences.forProject(project);
     } else {
@@ -373,7 +440,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
   private PipelineOptionsHierarchy getPipelineOptionsHierarchy(
       MajorVersion majorVersion, IProgressMonitor monitor) {
-    IProject project = getProject();
     if (project != null && project.isAccessible()) {
       try {
         return pipelineOptionsHierarchyFactory.forProject(project, majorVersion, monitor);
@@ -384,14 +450,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
       }
     }
     return pipelineOptionsHierarchyFactory.global(monitor);
-  }
-
-  private IProject getProject() {
-    String eclipseProjectName = launchConfiguration.getEclipseProjectName();
-    if (eclipseProjectName != null && !eclipseProjectName.isEmpty()) {
-      return workspaceRoot.getProject(eclipseProjectName);
-    }
-    return null;
   }
 
   @Override
@@ -481,8 +539,13 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   @Override
-  public boolean isValid(ILaunchConfiguration launchConfig) {
-    return validatePage();
+  public boolean isValid(ILaunchConfiguration configuration) {
+    try {
+      reinitialize(configuration);
+      return validatePage();
+    } catch (CoreException | InvocationTargetException | InterruptedException ex) {
+      return false;
+    }
   }
 
   @Override

@@ -18,6 +18,8 @@ package com.google.cloud.tools.eclipse.dataflow.core.launcher;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,15 +69,14 @@ public class PipelineLaunchConfigurationTest {
             PipelineConfigurationAttr.ALL_ARGUMENT_VALUES.toString(),
             Collections.<String, String>emptyMap())).thenReturn(requiredArgumentValues);
 
+    // set a different runner from the default
     PipelineRunner runner = PipelineRunner.DATAFLOW_PIPELINE_RUNNER;
     when(
-        launchConfiguration.getAttribute(
-            PipelineConfigurationAttr.RUNNER_ARGUMENT.toString(),
-            PipelineLaunchConfiguration.defaultRunner(majorVersion).getRunnerName()))
-        .thenReturn(runner.getRunnerName());
+        launchConfiguration.getAttribute(eq(PipelineConfigurationAttr.RUNNER_ARGUMENT.toString()),
+            anyString())).thenReturn(runner.getRunnerName());
 
     PipelineLaunchConfiguration lc =
-        PipelineLaunchConfiguration.fromLaunchConfiguration(launchConfiguration);
+        PipelineLaunchConfiguration.fromLaunchConfiguration(launchConfiguration, majorVersion);
 
     assertEquals(requiredArgumentValues, lc.getArgumentValues());
     assertEquals(runner, lc.getRunner());
