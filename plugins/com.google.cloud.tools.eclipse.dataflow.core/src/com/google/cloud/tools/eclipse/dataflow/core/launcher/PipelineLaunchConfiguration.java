@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.ILaunchConfiguration;
@@ -272,6 +273,24 @@ public class PipelineLaunchConfiguration {
     } else {
       return !Strings.isNullOrEmpty(argumentValues.get(propertyName));
     }
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    } else if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    PipelineLaunchConfiguration other = (PipelineLaunchConfiguration) obj;
+    return Objects.equals(argumentValues, other.argumentValues)
+        && Objects.equals(runner, other.runner)
+        && Objects.equals(userOptionsName, other.userOptionsName);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(argumentValues, runner, userOptionsName);
   }
 
   @Override

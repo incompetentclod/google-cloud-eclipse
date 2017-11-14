@@ -20,8 +20,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +44,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.ILaunchConfiguration;
+import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
 import org.eclipse.debug.ui.ILaunchConfigurationDialog;
 import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
 import org.eclipse.swt.widgets.Button;
@@ -53,6 +59,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.junit.runners.Suite;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -94,30 +102,54 @@ public class PipelineArgumentsTabTest {
     }
 
     @Test
-    public void testReinitialize()
+    public void testReload()
         throws CoreException, InvocationTargetException, InterruptedException {
       IWorkspaceRoot workspaceRoot = mock(IWorkspaceRoot.class);
       when(workspaceRoot.getProject(anyString())).thenReturn(mock(IProject.class));
       ILaunchConfigurationDialog dialog = mock(ILaunchConfigurationDialog.class);
 
-      ILaunchConfiguration configuration1 = mock(ILaunchConfiguration.class);
-      Map<String, Object> attributes1 = new HashMap<String, Object>();
-      when(configuration1.getAttributes()).thenReturn(attributes1);
-      ILaunchConfiguration configuration2 = mock(ILaunchConfiguration.class);
-      Map<String, Object> attributes2 = new HashMap<String, Object>();
-      when(configuration2.getAttributes()).thenReturn(attributes2);
+      ILaunchConfigurationWorkingCopy configuration1 = mockLaunchConfiguration();
+      ILaunchConfigurationWorkingCopy configuration2 = mockLaunchConfiguration();
 
       PipelineArgumentsTab tab = new PipelineArgumentsTab(workspaceRoot);
       tab.setLaunchConfigurationDialog(dialog);
       tab.createControl(shellResource.getShell());
 
-      assertTrue(tab.reinitialize(configuration1));
-      assertFalse("cache should be ok", tab.reinitialize(configuration1));
-      attributes1.put("foo", "bar");
-      assertTrue("config changed, cache should be discarded", tab.reinitialize(configuration1));
-      assertTrue("different config; cache should be discarded", tab.reinitialize(configuration2));
-      assertTrue("config changed, cache should be discarded", tab.reinitialize(configuration1));
+      assertTrue(tab.reload(configuration1));
+      assertFalse("cache should be ok", tab.reload(configuration1)); //$NON-NLS-1$
+      configuration1.setAttribute(PipelineConfigurationAttr.USER_OPTIONS_NAME.toString(), "bar"); //$NON-NLS-1$
+      assertTrue("config changed, cache should be discarded", tab.reload(configuration1)); //$NON-NLS-1$
+      assertTrue("different config; cache should be discarded", tab.reload(configuration2)); //$NON-NLS-1$
+      assertTrue("config changed, cache should be discarded", tab.reload(configuration1)); //$NON-NLS-1$
     }
+  }
+
+  private static ILaunchConfigurationWorkingCopy mockLaunchConfiguration() throws CoreException {
+    final Map<String, Object> attributes = new HashMap<>();
+    Answer<Object> getAttributes = new Answer<Object>() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        String key = invocation.getArgumentAt(0, String.class);
+        return attributes.containsKey(key) ? attributes.get(key) : invocation.getArgumentAt(1, Object.class);
+      }};
+    Answer<Void> setAttributes = new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        attributes.put(invocation.getArgumentAt(0, String.class),
+            invocation.getArgumentAt(1, Object.class));
+        return null;
+      }};
+    ILaunchConfigurationWorkingCopy launch = mock(ILaunchConfigurationWorkingCopy.class);
+    doReturn(attributes).when(launch).getAttributes();
+    doAnswer(getAttributes).when(launch).getAttribute(anyString(), anyString());
+    doAnswer(getAttributes).when(launch).getAttribute(anyString(), anyInt());
+    doAnswer(getAttributes).when(launch).getAttribute(anyString(), anyBoolean());
+    doAnswer(getAttributes).when(launch).getAttribute(anyString(), anyMap());
+    doAnswer(setAttributes).when(launch).setAttribute(anyString(), anyString());
+    doAnswer(setAttributes).when(launch).setAttribute(anyString(), anyInt());
+    doAnswer(setAttributes).when(launch).setAttribute(anyString(), anyBoolean());
+    doAnswer(setAttributes).when(launch).setAttribute(anyString(), anyMap());
+    return launch;
   }
 
   @RunWith(Parameterized.class)

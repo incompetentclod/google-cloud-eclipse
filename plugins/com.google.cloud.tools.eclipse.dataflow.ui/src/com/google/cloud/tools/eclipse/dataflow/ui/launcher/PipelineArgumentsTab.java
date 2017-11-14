@@ -47,6 +47,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -83,11 +84,9 @@ import org.eclipse.ui.forms.events.IExpansionListener;
 /**
  * A tab specifying arguments required to run a Dataflow Pipeline.
  * 
- * As computing the pipeline options hierarchy can be expensive, we try to cache values.
- * {@link #reinitialize(ILaunchConfiguration)} is responsible for loading information derived from
- * an {@link ILaunchConfiguration}. We null out all computed information in
- * {@link #deactivated(ILaunchConfigurationWorkingCopy)}, called when the user switches to another
- * tab.
+ * Computing the pipeline options hierarchy can be expensive, so we try to avoid doing so.
+ * {@link #reload(ILaunchConfiguration)} is responsible for loading information derived from an
+ * {@link ILaunchConfiguration}.
  */
 public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private static final Joiner MISSING_GROUP_MEMBER_JOINER = Joiner.on(", "); //$NON-NLS-1$
@@ -112,9 +111,8 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private final PipelineOptionsHierarchyFactory pipelineOptionsHierarchyFactory =
       new ClasspathPipelineOptionsHierarchyFactory();
 
-  private ILaunchConfiguration currentConfiguration;
-  private int currentConfigurationHash;
   private IProject project;
+  private MajorVersion majorVersion;
   private PipelineLaunchConfiguration launchConfiguration;
 
   /*
@@ -124,7 +122,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
    * able.
    */
   private PipelineOptionsHierarchy hierarchy;
-
 
   public PipelineArgumentsTab() {
     this(ResourcesPlugin.getWorkspace().getRoot());
@@ -308,24 +305,11 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   @Override
-  public void deactivated(ILaunchConfigurationWorkingCopy workingCopy) {
-    // super.deactivated() calls performApply(), saving the PipelineLaunchConfiguration
-    // values into the ILaunchConfigurationWorkingCopy.
-    super.deactivated(workingCopy);
-    // null out all computed values that were derived from the ILaunchConfiguration;
-    // will force reinitialize() to recompute all values
-    currentConfiguration = null;
-    launchConfiguration = null;
-    project = null;
-    hierarchy = null;
-  }
-
-  @Override
   public void initializeFrom(ILaunchConfiguration configuration) {
     try {
-      reinitialize(configuration);
+      reload(configuration);
 
-      updateRunnerButtons(getMajorVersion(project));
+      updateRunnerButtons(majorVersion);
 
       defaultOptionsComponent.setUseDefaultValues(launchConfiguration.isUseDefaultLaunchOptions());
       defaultOptionsComponent.setPreferences(getPreferences());
@@ -343,29 +327,29 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   /**
-   * Reload computed information about the dataflow pipeline from the values in the given
-   * {@link ILaunchConfiguration}. As this is called from {{@link #isValid(ILaunchConfiguration)}},
-   * which is frequently called, try to avoid recomputing this information if unnecessary.
+   * Reload any computed information only if the launch configuration has changed in some meaningful
+   * way. This must be a fast check as this method is called from
+   * {{@link #isValid(ILaunchConfiguration)}}, which is called frequently.
    * 
    * @return true if values were reloaded, or false if the configuration was up-to-date
    */
   @VisibleForTesting
-  boolean reinitialize(ILaunchConfiguration configuration)
+  boolean reload(ILaunchConfiguration configuration)
       throws CoreException, InvocationTargetException, InterruptedException {
-    // assume that Map#hashCode() hashes its elements, and possibly its elements' elements
-    int configurationHash = configuration.getAttributes().hashCode();
-    if (currentConfiguration == configuration && currentConfigurationHash == configurationHash) {
+    // recompute the features of interest from the provided launch configuration
+    IProject project = findProject(configuration);
+    MajorVersion majorVersion = getMajorVersion(project);
+    PipelineLaunchConfiguration launchConfiguration =
+        PipelineLaunchConfiguration.fromLaunchConfiguration(configuration, majorVersion);
+    if (Objects.equals(project, this.project) && Objects.equals(majorVersion, this.majorVersion)
+        && Objects.equals(launchConfiguration, this.launchConfiguration)) {
+      // our features of interest are the same
       return false;
     }
-    // null out in case of exception
-    currentConfiguration = null;
-    project = findProject(configuration);
-    MajorVersion majorVersion = getMajorVersion(project);
-    launchConfiguration =
-        PipelineLaunchConfiguration.fromLaunchConfiguration(configuration, majorVersion);
-    updateHierarchy(majorVersion);
-    currentConfiguration = configuration;
-    currentConfigurationHash = configurationHash;
+    this.project = project;
+    this.majorVersion = majorVersion;
+    this.launchConfiguration = launchConfiguration;
+    updateHierarchy();
     return true;
   }
 
@@ -419,13 +403,13 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
    * @throws InterruptedException if the update is interrupted
    * @throws InvocationTargetException if an exception occurred during the update
    */
-  private void updateHierarchy(final MajorVersion majorVersion)
+  private void updateHierarchy()
       throws InvocationTargetException, InterruptedException {
     getLaunchConfigurationDialog().run(true, true, new IRunnableWithProgress() {
       @Override
       public void run(IProgressMonitor monitor)
           throws InvocationTargetException, InterruptedException {
-        hierarchy = getPipelineOptionsHierarchy(majorVersion, monitor);
+        hierarchy = getPipelineOptionsHierarchy(monitor);
       }
     });
   }
@@ -438,8 +422,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     }
   }
 
-  private PipelineOptionsHierarchy getPipelineOptionsHierarchy(
-      MajorVersion majorVersion, IProgressMonitor monitor) {
+  private PipelineOptionsHierarchy getPipelineOptionsHierarchy(IProgressMonitor monitor) {
     if (project != null && project.isAccessible()) {
       try {
         return pipelineOptionsHierarchyFactory.forProject(project, majorVersion, monitor);
@@ -541,7 +524,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   @Override
   public boolean isValid(ILaunchConfiguration configuration) {
     try {
-      reinitialize(configuration);
+      reload(configuration);
       return validatePage();
     } catch (CoreException | InvocationTargetException | InterruptedException ex) {
       return false;
