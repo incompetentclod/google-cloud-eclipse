@@ -107,7 +107,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private TextAndButtonComponent userOptionsSelector;
   private PipelineOptionsFormComponent pipelineOptionsForm;
 
-  private final DataflowDependencyManager dependencyManager = DataflowDependencyManager.create();
   private final PipelineOptionsHierarchyFactory pipelineOptionsHierarchyFactory =
       new ClasspathPipelineOptionsHierarchyFactory();
 
@@ -141,7 +140,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     composite.setLayout(new GridLayout(1, false));
 
-    internalComposite = new Composite(this.composite, SWT.NULL);
+    internalComposite = new Composite(composite, SWT.NULL);
 
     GridData internalCompositeGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
     internalComposite.setLayoutData(internalCompositeGridData);
@@ -353,22 +352,22 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     return true;
   }
 
-  private MajorVersion getMajorVersion(IProject project) {
-    MajorVersion majorVersion = MajorVersion.ONE;
+  private static MajorVersion getMajorVersion(IProject project) {
     if (project != null && project.isAccessible()) {
-       majorVersion = dependencyManager.getProjectMajorVersion(project);
-       if (majorVersion == null) {
-          majorVersion = MajorVersion.ONE;
+      DataflowDependencyManager dependencyManager = DataflowDependencyManager.create();
+      MajorVersion majorVersion = dependencyManager.getProjectMajorVersion(project);
+       if (majorVersion != null) {
+          return majorVersion;
        }
     }
-    return majorVersion;
+    return MajorVersion.ONE;
   }
 
   private final IProject findProject(ILaunchConfiguration launchConfiguration) {
     try {
       String eclipseProjectName =
           launchConfiguration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, "");
-      if (eclipseProjectName != null && !eclipseProjectName.isEmpty()) {
+      if (!Strings.isNullOrEmpty(eclipseProjectName)) {
         return workspaceRoot.getProject(eclipseProjectName);
       }
     } catch (CoreException ex) {
@@ -376,8 +375,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     }
     return null;
   }
-
-
 
   @VisibleForTesting
   void updateRunnerButtons(MajorVersion majorVersion) {
@@ -403,8 +400,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
    * @throws InterruptedException if the update is interrupted
    * @throws InvocationTargetException if an exception occurred during the update
    */
-  private void updateHierarchy()
-      throws InvocationTargetException, InterruptedException {
+  private void updateHierarchy() throws InvocationTargetException, InterruptedException {
     getLaunchConfigurationDialog().run(true, true, new IRunnableWithProgress() {
       @Override
       public void run(IProgressMonitor monitor)

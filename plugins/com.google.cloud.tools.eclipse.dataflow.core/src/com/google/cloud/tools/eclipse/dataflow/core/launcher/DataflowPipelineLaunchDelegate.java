@@ -16,8 +16,6 @@
 
 package com.google.cloud.tools.eclipse.dataflow.core.launcher;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.cloud.tools.eclipse.dataflow.core.DataflowCorePlugin;
 import com.google.cloud.tools.eclipse.dataflow.core.launcher.options.PipelineOptionsHierarchy;
@@ -115,13 +113,12 @@ public class DataflowPipelineLaunchDelegate implements ILaunchConfigurationDeleg
 
     String projectName =
         configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, "");
-    checkArgument(!projectName.isEmpty(), "Cannot determine project");
-    IProject project = workspaceRoot.getProject(projectName);
-    checkArgument(
-        project.exists(),
+    Preconditions.checkArgument(!projectName.isEmpty(), "Cannot determine project");
+    Preconditions.checkArgument(workspaceRoot.getProject(projectName).exists(),
         "Project with name %s must exist to launch. Got launch attributes %s",
-        projectName,
-        configuration.getAttributes());
+        projectName, configuration.getAttributes());
+
+    IProject project = workspaceRoot.getProject(projectName);
     MajorVersion majorVersion = dependencyManager.getProjectMajorVersion(project);
 
     PipelineLaunchConfiguration pipelineConfig =

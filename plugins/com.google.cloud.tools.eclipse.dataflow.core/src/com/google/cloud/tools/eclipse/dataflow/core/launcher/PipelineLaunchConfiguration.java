@@ -60,8 +60,7 @@ public class PipelineLaunchConfiguration {
    */
   public static PipelineLaunchConfiguration fromLaunchConfiguration(
       ILaunchConfiguration launchConfiguration, MajorVersion projectVersion) throws CoreException {
-    PipelineLaunchConfiguration configuration =
-        new PipelineLaunchConfiguration(defaultRunner(projectVersion));
+    PipelineLaunchConfiguration configuration = createDefault(projectVersion);
     configuration.setValuesFromLaunchConfiguration(launchConfiguration);
     return configuration;
   }
@@ -85,11 +84,11 @@ public class PipelineLaunchConfiguration {
 
   private PipelineLaunchConfiguration(PipelineRunner runner) {
     this.runner = runner;
-    this.argumentValues = Collections.<String, String>emptyMap();
+    argumentValues = Collections.<String, String>emptyMap();
 
-    this.useDefaultLaunchOptions = true;
+    useDefaultLaunchOptions = true;
 
-    this.userOptionsName = Optional.absent();
+    userOptionsName = Optional.absent();
   }
 
   public PipelineRunner getRunner() {
@@ -113,7 +112,7 @@ public class PipelineLaunchConfiguration {
   }
 
   public void setArgumentValues(Map<String, String> allRequiredArgs) {
-    this.argumentValues = allRequiredArgs;
+    argumentValues = allRequiredArgs;
   }
 
   public boolean isUseDefaultLaunchOptions() {
