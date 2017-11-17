@@ -395,12 +395,10 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   /**
-   * Asynchronously updates the project hierarchy.
-   * 
-   * @throws InterruptedException if the update is interrupted
-   * @throws InvocationTargetException if an exception occurred during the update
+   * Synchronously updates the project hierarchy.
    */
   private void updateHierarchy() throws InvocationTargetException, InterruptedException {
+    // blocking call (regardless of "fork"), returning only after the inner runnable completes
     getLaunchConfigurationDialog().run(true, true, new IRunnableWithProgress() {
       @Override
       public void run(IProgressMonitor monitor)
@@ -459,6 +457,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
       }
     }, displayExecutor);
     try {
+      // blocking call (regardless of "fork"), returning only after the inner runnable completes
       getLaunchConfigurationDialog().run(true, true, new IRunnableWithProgress() {
         @Override
         public void run(IProgressMonitor monitor)
