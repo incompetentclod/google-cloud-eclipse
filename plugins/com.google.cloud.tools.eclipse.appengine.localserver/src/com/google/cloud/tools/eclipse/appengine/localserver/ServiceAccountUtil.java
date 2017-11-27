@@ -37,7 +37,7 @@ public class ServiceAccountUtil {
    * @param credential credential to use to create a service account key
    * @param projectId GCP project ID for {@code serviceAccountId} 
    * @param serviceAccountId the service account ID (for example, {@code
-   *     project-id@appspot.gserviceaccount.com}
+   *     project-id@appspot.gserviceaccount.com})
    * @param destination path of a key file to be saved
    */
   public static void createServiceAccountKey(IGoogleApiFactory apiFactory,
