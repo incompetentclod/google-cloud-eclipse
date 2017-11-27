@@ -100,10 +100,10 @@ public class ProjectSelector extends Composite implements ISelectionProvider {
   }
 
   /**
-   * Returns the GCP project ID of a selected project. Returns an empty string if nothing is
+   * Returns the GCP project ID of the selected project. Returns an empty string if nothing is
    * selected. Never returns null.
    */
-  public String getSelectProjectId() {
+  public String getSelectedProjectId() {
     if (getSelection().isEmpty()) {
       return "";
     }
