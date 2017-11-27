@@ -253,6 +253,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
       public void clear() {
         setErrorMessage(null);
         setMessage(null);
+        getLaunchConfigurationDialog().updateMessage();
       }
     };
 
