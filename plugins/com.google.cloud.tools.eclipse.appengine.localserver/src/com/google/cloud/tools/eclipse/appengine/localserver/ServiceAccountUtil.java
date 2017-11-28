@@ -41,12 +41,10 @@ public class ServiceAccountUtil {
    * @param destination path of a key file to be saved
    */
   public static void createServiceAccountKey(IGoogleApiFactory apiFactory,
-      Credential credential, String projectId, String serviceAccountId, Path destination)
+      Credential credential, String projectId, Path destination)
           throws FileAlreadyExistsException, IOException {
     Preconditions.checkNotNull(credential, "credential not given");
     Preconditions.checkState(!projectId.isEmpty(), "project ID empty");
-    Preconditions.checkState(!serviceAccountId.isEmpty(), "service account empty");
-    Preconditions.checkState(!serviceAccountId.contains(":"), "service account ID malformed");
     Preconditions.checkArgument(destination.isAbsolute(), "destination not absolute");
 
     if (!Files.exists(destination.getParent())) {
@@ -55,6 +53,15 @@ public class ServiceAccountUtil {
 
     Iam iam = apiFactory.newIamApi(credential);
     Keys keys = iam.projects().serviceAccounts().keys();
+    
+    String projectEmail = projectId;
+    // The appengine service account for google.com:gcloud-for-eclipse-testing 
+    // would be gcloud-for-eclipse-testing.google.com@appspot.gserviceaccount.com.
+    if (projectId.contains(":")) {
+      String[] parts = projectId.split(":"); //$NON-NLS-1$ 
+      projectEmail = parts[1] + "." + parts[0];
+    }
+    String serviceAccountId = projectEmail + "@appspot.gserviceaccount.com"; //$NON-NLS-1$   
 
     String keyId = "projects/" + projectId + "/serviceAccounts/" + serviceAccountId;
     CreateServiceAccountKeyRequest createRequest = new CreateServiceAccountKeyRequest();

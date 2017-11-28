@@ -417,18 +417,9 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
     Preconditions.checkNotNull(credential, "no account selected"); //$NON-NLS-1$
     Preconditions.checkState(!projectId.isEmpty(), "no project selected"); //$NON-NLS-1$
     
-    String projectEmail = projectId;
-    // The appengine service account for google.com:gcloud-for-eclipse-testing 
-    // would be gcloud-for-eclipse-testing.google.com@appspot.gserviceaccount.com.
-    if (projectEmail.contains(":")) {
-      String[] parts = projectEmail.split(":");
-      projectEmail = parts[1] + "." + parts[0];
-    }
-    String appEngineServiceAccountId = projectEmail + "@appspot.gserviceaccount.com"; //$NON-NLS-1$   
-    
     try { 
       ServiceAccountUtil.createServiceAccountKey(googleApiFactory,
-          credential, projectId, appEngineServiceAccountId, keyFile);
+          credential, projectId, keyFile);
 
       serviceKeyInput.setText(keyFile.toString());
       String message = Messages.getString("service.key.created", keyFile); //$NON-NLS-1$
@@ -436,7 +427,7 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
 
     } catch (IOException e) {
       logger.log(Level.SEVERE, e.getMessage(), e);
-      String message = Messages.getString("cannot.create.service.key",  //$NON-NLS-1$
+      String message = Messages.getString("cannot.create.service.key", //$NON-NLS-1$
           e.getLocalizedMessage());
       showServiceKeyDecorationMessage(message, true /* isError */);
     }

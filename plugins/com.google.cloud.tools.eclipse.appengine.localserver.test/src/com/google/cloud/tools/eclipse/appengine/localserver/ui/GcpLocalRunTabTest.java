@@ -33,7 +33,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.api.client.auth.oauth2.Credential;
-import com.google.cloud.tools.eclipse.appengine.localserver.ServiceAccountUtilTest;
+import com.google.api.client.util.Base64;
+import com.google.api.services.iam.v1.Iam;
+import com.google.api.services.iam.v1.Iam.Projects;
+import com.google.api.services.iam.v1.Iam.Projects.ServiceAccounts;
+import com.google.api.services.iam.v1.Iam.Projects.ServiceAccounts.Keys;
+import com.google.api.services.iam.v1.Iam.Projects.ServiceAccounts.Keys.Create;
+import com.google.api.services.iam.v1.model.CreateServiceAccountKeyRequest;
+import com.google.api.services.iam.v1.model.ServiceAccountKey;
 import com.google.cloud.tools.eclipse.googleapis.IGoogleApiFactory;
 import com.google.cloud.tools.eclipse.login.IGoogleLoginService;
 import com.google.cloud.tools.eclipse.login.ui.AccountSelector;
@@ -75,7 +82,9 @@ import org.junit.runner.RunWith;
 import org.mockito.AdditionalAnswers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.Matchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -357,14 +366,14 @@ public class GcpLocalRunTabTest {
   }
 
   private void setUpServiceKeyCreation(boolean throwException) throws IOException, CoreException {
-    ServiceAccountUtilTest.setUpServiceKeyCreation(apiFactory, throwException);
+    setUpServiceKeyCreation(apiFactory, throwException);
     mockLaunchConfig("account1@example.com", "project-A", "");
     tab.initializeFrom(launchConfig);
   }
 
   @Test
   public void testCreateServiceAccountKey() throws IOException, CoreException {
-    ServiceAccountUtilTest.setUpServiceKeyCreation(apiFactory, false);
+    setUpServiceKeyCreation(apiFactory, false);
     mockLaunchConfig("account2@example.com", "google.com:project-D", "");
     accountSelector.selectAccount("account2@example.com");
 
@@ -376,6 +385,31 @@ public class GcpLocalRunTabTest {
     assertEquals("key data in JSON format", new String(bytesRead, StandardCharsets.UTF_8));
   }
 
+  private static void setUpServiceKeyCreation(
+      IGoogleApiFactory mockApiFactory, boolean throwException) throws IOException {
+    Iam iam = Mockito.mock(Iam.class);
+    Projects projects = Mockito.mock(Projects.class);
+    ServiceAccounts serviceAccounts = Mockito.mock(ServiceAccounts.class);
+    Keys keys = Mockito.mock(Keys.class);
+    Create create = Mockito.mock(Create.class);
+
+    ServiceAccountKey serviceAccountKey = new ServiceAccountKey();
+    byte[] keyContent = "key data in JSON format".getBytes();
+    serviceAccountKey.setPrivateKeyData(Base64.encodeBase64String(keyContent));
+
+    when(mockApiFactory.newIamApi(any(Credential.class))).thenReturn(iam);
+    when(iam.projects()).thenReturn(projects);
+    when(projects.serviceAccounts()).thenReturn(serviceAccounts);
+    when(serviceAccounts.keys()).thenReturn(keys);
+    when(keys.create(anyString(), Matchers.any(CreateServiceAccountKeyRequest.class))).thenReturn(create);
+
+    if (throwException) {
+      when(create.execute()).thenThrow(new IOException("log from unit test"));
+    } else {
+      when(create.execute()).thenReturn(serviceAccountKey);
+    }
+  }
+  
   @Test
   public void testCreateServiceAccountKey_replacesExistingKey() throws IOException, CoreException {
     setUpServiceKeyCreation(false);
