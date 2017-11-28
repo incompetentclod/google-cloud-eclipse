@@ -32,15 +32,13 @@ import java.nio.file.Path;
 public class ServiceAccountUtil {
 
   /**
-   * Creates and saves a service account key (JSON) for a service account.
+   * Creates and saves a service account key the App Engine default service account.
    *
    * @param credential credential to use to create a service account key
    * @param projectId GCP project ID for {@code serviceAccountId} 
-   * @param serviceAccountId the service account ID (for example, {@code
-   *     project-id@appspot.gserviceaccount.com}
    * @param destination path of a key file to be saved
    */
-  public static void createServiceAccountKey(IGoogleApiFactory apiFactory,
+  public static void createAppEngineDefaultServiceAccountKey(IGoogleApiFactory apiFactory,
       Credential credential, String projectId, Path destination)
           throws FileAlreadyExistsException, IOException {
     Preconditions.checkNotNull(credential, "credential not given");

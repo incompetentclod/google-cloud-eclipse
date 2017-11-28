@@ -418,7 +418,7 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
     Preconditions.checkState(!projectId.isEmpty(), "no project selected"); //$NON-NLS-1$
     
     try { 
-      ServiceAccountUtil.createServiceAccountKey(googleApiFactory,
+      ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(googleApiFactory,
           credential, projectId, keyFile);
 
       serviceKeyInput.setText(keyFile.toString());
