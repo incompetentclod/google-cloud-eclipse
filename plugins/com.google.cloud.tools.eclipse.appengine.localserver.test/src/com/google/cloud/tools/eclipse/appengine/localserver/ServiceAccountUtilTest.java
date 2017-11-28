@@ -93,8 +93,20 @@ public class ServiceAccountUtilTest {
 
   @Test
   public void testCreateServiceAccountKey() throws IOException {
-
     ServiceAccountUtil.createServiceAccountKey(apiFactory, credential, "my-project",
+        keyFile);
+
+    byte[] bytesRead = Files.readAllBytes(keyFile);
+    assertEquals("key data in JSON format", new String(bytesRead, StandardCharsets.UTF_8));
+  }
+  
+  @Test
+  public void testCreateServiceAccountKey_prefixedProject() throws IOException {
+    when(keys.create(
+        eq("projects/google.com:my-project/serviceAccounts/my-project.google.com@appspot.gserviceaccount.com"),
+        any(CreateServiceAccountKeyRequest.class))).thenReturn(create);
+
+    ServiceAccountUtil.createServiceAccountKey(apiFactory, credential, "google.com:my-project",
         keyFile);
 
     byte[] bytesRead = Files.readAllBytes(keyFile);
