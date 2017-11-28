@@ -75,7 +75,7 @@ public class ServiceAccountUtilTest {
         any(CreateServiceAccountKeyRequest.class))).thenReturn(create);
 
     ServiceAccountKey serviceAccountKey = new ServiceAccountKey();
-    byte[] keyContent = "key data in JSON format".getBytes();
+    byte[] keyContent = "key data in JSON format".getBytes(StandardCharsets.UTF_8);
     serviceAccountKey.setPrivateKeyData(Base64.encodeBase64String(keyContent));
     
     when(create.execute()).thenReturn(serviceAccountKey);
