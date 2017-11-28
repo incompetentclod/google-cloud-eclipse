@@ -418,8 +418,11 @@ public class GcpLocalRunTab extends AbstractLaunchConfigurationTab {
     Preconditions.checkState(!projectId.isEmpty(), "no project selected"); //$NON-NLS-1$
     
     String projectEmail = projectId;
+    // The appengine service account for google.com:gcloud-for-eclipse-testing 
+    // would be gcloud-for-eclipse-testing.google.com@appspot.gserviceaccount.com.
     if (projectEmail.contains(":")) {
-      projectEmail = projectEmail.split(":")[1];
+      String[] parts = projectEmail.split(":");
+      projectEmail = parts[1] + "." + parts[0];
     }
     String appEngineServiceAccountId = projectEmail + "@appspot.gserviceaccount.com"; //$NON-NLS-1$   
     
