@@ -99,34 +99,34 @@ public class ProjectSelectorTest {
   @Test
   public void testGetSelectedProjectId_nothingSelected() {
     projectSelector.setProjects(getUnsortedProjectList());
-    assertEquals("", projectSelector.getSelectProjectId());
+    assertEquals("", projectSelector.getSelectedProjectId());
   }
 
   @Test
   public void testGetSelectedProjectId() {
     projectSelector.setProjects(getUnsortedProjectList());
     projectSelector.setSelection(new StructuredSelection(new GcpProject("d", "d")));
-    assertEquals("d", projectSelector.getSelectProjectId());
+    assertEquals("d", projectSelector.getSelectedProjectId());
   }
 
   @Test
   public void testSelectProjectId() {
     projectSelector.setProjects(getUnsortedProjectList());
     assertTrue(projectSelector.selectProjectId("b"));
-    assertEquals("b", projectSelector.getSelectProjectId());
+    assertEquals("b", projectSelector.getSelectedProjectId());
 
     assertTrue(projectSelector.selectProjectId("d"));
-    assertEquals("d", projectSelector.getSelectProjectId());
+    assertEquals("d", projectSelector.getSelectedProjectId());
   }
 
   @Test
   public void testSelectProjectId_deselect() {
     projectSelector.setProjects(getUnsortedProjectList());
     assertTrue(projectSelector.selectProjectId("b"));
-    assertEquals("b", projectSelector.getSelectProjectId());
+    assertEquals("b", projectSelector.getSelectedProjectId());
 
     assertFalse(projectSelector.selectProjectId("non-existing-id"));
-    assertEquals("", projectSelector.getSelectProjectId());
+    assertEquals("", projectSelector.getSelectedProjectId());
   }
 
   @Test

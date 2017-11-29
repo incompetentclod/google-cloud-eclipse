@@ -19,7 +19,7 @@ package com.google.cloud.tools.eclipse.appengine.localserver;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -53,44 +53,39 @@ public class ServiceAccountUtilTest {
 
   @Mock private Credential credential;
   @Mock private IGoogleApiFactory apiFactory;
+  @Mock private Keys keys;
+  @Mock private Create create;
 
   private Path keyFile;
 
   @Before
-  public void setUp() {
+  public void setUp() throws IOException {
     keyFile = tempFolder.getRoot().toPath().resolve("key.json");
-  }
 
-  public static void setUpServiceKeyCreation(
-      IGoogleApiFactory mockApiFactory, boolean throwException) throws IOException {
     Iam iam = mock(Iam.class);
     Projects projects = mock(Projects.class);
     ServiceAccounts serviceAccounts = mock(ServiceAccounts.class);
-    Keys keys = mock(Keys.class);
-    Create create = mock(Create.class);
-
-    ServiceAccountKey serviceAccountKey = new ServiceAccountKey();
-    byte[] keyContent = "key data in JSON format".getBytes();
-    serviceAccountKey.setPrivateKeyData(Base64.encodeBase64String(keyContent));
-
-    when(mockApiFactory.newIamApi(any(Credential.class))).thenReturn(iam);
+        
+    when(apiFactory.newIamApi(any(Credential.class))).thenReturn(iam);
     when(iam.projects()).thenReturn(projects);
     when(projects.serviceAccounts()).thenReturn(serviceAccounts);
     when(serviceAccounts.keys()).thenReturn(keys);
-    when(keys.create(anyString(), any(CreateServiceAccountKeyRequest.class))).thenReturn(create);
+    when(keys.create(
+        eq("projects/my-project/serviceAccounts/my-project@appspot.gserviceaccount.com"),
+        any(CreateServiceAccountKeyRequest.class))).thenReturn(create);
 
-    if (throwException) {
-      when(create.execute()).thenThrow(new IOException("log from unit test"));
-    } else {
-      when(create.execute()).thenReturn(serviceAccountKey);
-    }
+    ServiceAccountKey serviceAccountKey = new ServiceAccountKey();
+    byte[] keyContent = "key data in JSON format".getBytes(StandardCharsets.UTF_8);
+    serviceAccountKey.setPrivateKeyData(Base64.encodeBase64String(keyContent));
+    
+    when(create.execute()).thenReturn(serviceAccountKey);
   }
 
   @Test
   public void testCreateServiceAccountKey_destinationShouldBeAbsolute() throws IOException {
     try {
-      ServiceAccountUtil.createServiceAccountKey(apiFactory, credential, "my-project",
-          "my-service-account@example.com", Paths.get("relative/path/to.json"));
+      ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(apiFactory, credential, "my-project",
+          Paths.get("relative/path/to.json"));
     } catch (IllegalArgumentException e) {
       assertEquals("destination not absolute", e.getMessage());
     }
@@ -98,10 +93,21 @@ public class ServiceAccountUtilTest {
 
   @Test
   public void testCreateServiceAccountKey() throws IOException {
-    setUpServiceKeyCreation(apiFactory, false);
+    ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(apiFactory, credential, "my-project",
+        keyFile);
 
-    ServiceAccountUtil.createServiceAccountKey(apiFactory, credential, "my-project",
-        "my-service-account@example.com", keyFile);
+    byte[] bytesRead = Files.readAllBytes(keyFile);
+    assertEquals("key data in JSON format", new String(bytesRead, StandardCharsets.UTF_8));
+  }
+  
+  @Test
+  public void testCreateServiceAccountKey_prefixedProject() throws IOException {
+    when(keys.create(
+        eq("projects/google.com:my-project/serviceAccounts/my-project.google.com@appspot.gserviceaccount.com"),
+        any(CreateServiceAccountKeyRequest.class))).thenReturn(create);
+
+    ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(apiFactory, credential, "google.com:my-project",
+        keyFile);
 
     byte[] bytesRead = Files.readAllBytes(keyFile);
     assertEquals("key data in JSON format", new String(bytesRead, StandardCharsets.UTF_8));
@@ -109,11 +115,10 @@ public class ServiceAccountUtilTest {
 
   @Test
   public void testCreateServiceAccountKey_replacesExistingFile() throws IOException {
-    setUpServiceKeyCreation(apiFactory, false);
 
     Files.write(keyFile, new byte[] {0, 1, 2});
-    ServiceAccountUtil.createServiceAccountKey(apiFactory, credential, "my-project",
-        "my-service-account@example.com", keyFile);
+    ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(apiFactory, credential, "my-project",
+        keyFile);
 
     byte[] bytesRead = Files.readAllBytes(keyFile);
     assertEquals("key data in JSON format", new String(bytesRead, StandardCharsets.UTF_8));
@@ -121,11 +126,12 @@ public class ServiceAccountUtilTest {
 
   @Test
   public void testCreateServiceAccountKey_ioException() throws IOException {
-    setUpServiceKeyCreation(apiFactory, true);
 
+    when(create.execute()).thenThrow(new IOException("log from unit test"));
+    
     try {
-      ServiceAccountUtil.createServiceAccountKey(apiFactory, credential, "my-project",
-          "my-service-account@example.com", keyFile);
+      ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(apiFactory, credential, "my-project",
+          keyFile);
     } catch (IOException e) {
       assertEquals("log from unit test", e.getMessage());
     }
@@ -134,11 +140,10 @@ public class ServiceAccountUtilTest {
 
   @Test
   public void testCreateServiceAccountKey_createsRequiredDirectories() throws IOException {
-    setUpServiceKeyCreation(apiFactory, false);
 
     Path keyFile = tempFolder.getRoot().toPath().resolve("non/existing/directory/key.json");
-    ServiceAccountUtil.createServiceAccountKey(apiFactory, credential, "my-project",
-          "my-service-account@example.com", keyFile);
+    ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(apiFactory, credential, "my-project",
+          keyFile);
 
     byte[] bytesRead = Files.readAllBytes(keyFile);
     assertEquals("key data in JSON format", new String(bytesRead, StandardCharsets.UTF_8));
