@@ -20,6 +20,7 @@ import com.google.cloud.tools.eclipse.appengine.libraries.model.CloudLibraries;
 import com.google.cloud.tools.eclipse.appengine.libraries.model.Library;
 import com.google.cloud.tools.eclipse.appengine.libraries.model.LibraryFile;
 import com.google.cloud.tools.eclipse.appengine.libraries.persistence.LibraryClasspathContainerSerializer;
+import com.google.cloud.tools.eclipse.usagetracker.AnalyticsEvents;
 import com.google.cloud.tools.eclipse.util.ClasspathUtil;
 import com.google.cloud.tools.eclipse.util.status.StatusUtil;
 import java.io.IOException;
@@ -59,11 +60,11 @@ public class BuildPath {
   
   public static void addMavenLibraries(IProject project, List<Library> libraries,
       IProgressMonitor monitor) throws CoreException {
-    
     if (libraries.isEmpty()) {
       return;
     }
-    
+    AnalyticsLibraryPingHelper.sendLibrarySelectionPing(AnalyticsEvents.MAVEN_PROJECT, libraries);
+
     // see m2e-core/org.eclipse.m2e.core.ui/src/org/eclipse/m2e/core/ui/internal/actions/AddDependencyAction.java
     // m2e-core/org.eclipse.m2e.core.ui/src/org/eclipse/m2e/core/ui/internal/editing/AddDependencyOperation.java
 
@@ -80,7 +81,11 @@ public class BuildPath {
 
   public static void addNativeLibrary(IJavaProject javaProject,
       List<Library> libraries, IProgressMonitor monitor) throws CoreException {
-    
+    if (libraries.isEmpty()) {
+      return;
+    }
+    AnalyticsLibraryPingHelper.sendLibrarySelectionPing(AnalyticsEvents.NATIVE_PROJECT, libraries);
+
     SubMonitor subMonitor = SubMonitor.convert(monitor,
         Messages.getString("adding.app.engine.libraries"), //$NON-NLS-1$
         25);

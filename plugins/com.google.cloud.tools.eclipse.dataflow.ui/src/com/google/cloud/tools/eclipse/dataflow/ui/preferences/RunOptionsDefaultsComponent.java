@@ -102,14 +102,12 @@ public class RunOptionsDefaultsComponent {
   private final Combo stagingLocationInput;
   private final Button createButton;
 
-  private GcpProjectServicesJob checkProjectConfigurationJob;
   private SelectFirstMatchingPrefixListener completionListener;
   private ControlDecoration stagingLocationResults;
 
-  @VisibleForTesting
-  FetchStagingLocationsJob fetchStagingLocationsJob;
-  @VisibleForTesting
-  VerifyStagingLocationJob verifyStagingLocationJob;
+  private GcpProjectServicesJob checkProjectConfigurationJob;
+  private FetchStagingLocationsJob fetchStagingLocationsJob;
+  private VerifyStagingLocationJob verifyStagingLocationJob;
 
   public RunOptionsDefaultsComponent(Composite target, int columns, MessageTarget messageTarget,
       DataflowPreferences preferences) {
@@ -414,6 +412,8 @@ public class RunOptionsDefaultsComponent {
 
   public void setStagingLocationText(String stagingLocation) {
     stagingLocationInput.setText(stagingLocation);
+    // programmtically set so initiate check immediately
+    startStagingLocationCheck(0);
   }
 
   public void addAccountSelectionListener(Runnable listener) {
@@ -543,6 +543,8 @@ public class RunOptionsDefaultsComponent {
         return;
       }
       stagingLocationResults.hide();
+      // clear any error messages, such as bucket-does-not-exist
+      messageTarget.clear();
 
       GcpProject project = getProject();
       String stagingLocation = getStagingLocation();
@@ -566,5 +568,19 @@ public class RunOptionsDefaultsComponent {
     if (page != null) {
       page.setPageComplete(complete);
     }
+  }
+
+  @VisibleForTesting
+  void join() throws InterruptedException {
+    if (fetchStagingLocationsJob != null) {
+      fetchStagingLocationsJob.join();
+    }
+    if (verifyStagingLocationJob != null) {
+      verifyStagingLocationJob.join();
+    }
+    if (checkProjectConfigurationJob != null) {
+      checkProjectConfigurationJob.join();
+    }
+    projectInput.join();
   }
 }

@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.cloud.tools.eclipse.projectselector.ApplicationPermissionsException;
 import com.google.cloud.tools.eclipse.projectselector.ProjectRepository;
 import com.google.cloud.tools.eclipse.projectselector.ProjectRepositoryException;
 import com.google.cloud.tools.eclipse.projectselector.ProjectSelector;
@@ -52,7 +53,8 @@ public class AppEngineApplicationQueryJobTest {
   private static final String EXPECTED_MESSAGE_WHEN_NO_APPLICATION =
       ProjectSelectorSelectionChangedListenerTest.EXPECTED_MESSAGE_WHEN_NO_APPLICATION;
   private static final String EXPECTED_MESSAGE_WHEN_EXCEPTION =
-      ProjectSelectorSelectionChangedListenerTest.EXPECTED_MESSAGE_WHEN_EXCEPTION;
+      "An error occurred while retrieving App Engine application in project projectId:"
+      + "\ntestException";
 
   private GcpProject project = new GcpProject("name", "projectId");
   @Mock private Credential credential;
@@ -100,6 +102,24 @@ public class AppEngineApplicationQueryJobTest {
     verify(projectSelector).setStatusLink(EXPECTED_MESSAGE_WHEN_NO_APPLICATION, EXPECTED_LINK);
 
     assertEquals(AppEngine.NO_APPENGINE_APPLICATION, project.getAppEngine());
+  }
+  
+
+  @Test
+  public void testRun_accountDoesNotHavePermission()
+      throws ProjectRepositoryException, InterruptedException {
+    when(projectRepository.getAppEngineApplication(credential, "projectId"))
+        .thenThrow(new ApplicationPermissionsException("testException", null));
+
+    queryJob.schedule();
+    queryJob.join();
+
+    verify(isLatestQueryJob).apply(queryJob);
+    verify(projectSelector).isDisposed();
+    verify(projectSelector).setStatusLink(
+        "This account does not have permission for the App Engine application in project projectId.", null);
+
+    assertNull(project.getAppEngine());
   }
 
   @Test

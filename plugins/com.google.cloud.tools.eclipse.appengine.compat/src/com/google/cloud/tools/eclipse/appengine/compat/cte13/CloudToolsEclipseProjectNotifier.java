@@ -145,6 +145,7 @@ public class CloudToolsEclipseProjectNotifier implements IStartup {
       IStatus result = CloudToolsEclipseProjectUpdater.updateProject(project, progress.newChild(1));
       status.merge(result);
     }
-    return status;
+    // rewrite if OK as otherwise Progress View shows the "Updating projects for..." message
+    return StatusUtil.filter(status);
   }
 }

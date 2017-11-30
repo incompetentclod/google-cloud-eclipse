@@ -23,6 +23,8 @@ public class AnalyticsEvents {
   public static final String LOGIN_SUCCESS = "user.login.success";
   public static final String LOGIN_CANCELED = "user.login.canceled";
 
+  public static final String LIBRARY_SELECTED = "library.selected";
+
   public static final String DATAFLOW_RUN = "dataflow.run";
   public static final String DATAFLOW_NEW_PROJECT_WIZARD = "dataflow.new.project.wizard";
   public static final String DATAFLOW_NEW_PROJECT_WIZARD_COMPLETE =
@@ -42,8 +44,14 @@ public class AnalyticsEvents {
   public static final String APP_ENGINE_DEPLOY_FLEXIBLE = "flex";
   public static final String DATAFLOW_RUN_RUNNER = "runner";
 
+  public static final String PROJECT_TYPE = "project.type";
+  public static final String LIBRARY_IDS = "library.ids";
+
   // Metadata values
   // This actually means "standard"; the value "native" is for a legacy reason.
   public static final String APP_ENGINE_NEW_PROJECT_WIZARD_TYPE_STANDARD = "native";
   public static final String APP_ENGINE_NEW_PROJECT_WIZARD_TYPE_FLEX = "flex";
+
+  public static final String NATIVE_PROJECT = "native.project";
+  public static final String MAVEN_PROJECT = "maven.project";
 }
