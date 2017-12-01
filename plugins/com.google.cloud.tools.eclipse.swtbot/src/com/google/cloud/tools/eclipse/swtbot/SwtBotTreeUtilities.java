@@ -364,12 +364,16 @@ public class SwtBotTreeUtilities {
    * 
    * @throws TimeoutException if the child does not appear within the default timeout
    */
-  public static void waitUntilTreeItemhasChild(SWTWorkbenchBot bot, final SWTBotTreeItem treeItem,
+  public static void waitUntilTreeItemHasChild(SWTWorkbenchBot bot, final SWTBotTreeItem treeItem,
       final String childText) {
     bot.waitUntil(new DefaultCondition() {
       @Override
       public String getFailureMessage() {
-        return "Tree items never disappeared";
+        System.err.println(treeItem + ": expanded? " + treeItem.isExpanded());
+        for (SWTBotTreeItem childNode : treeItem.getItems()) {
+          System.err.println("    " + childNode);
+        }
+        return "Tree item never appeared";
       }
 
       @Override
