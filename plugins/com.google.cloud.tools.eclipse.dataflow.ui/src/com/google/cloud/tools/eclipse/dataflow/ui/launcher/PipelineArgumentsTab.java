@@ -271,9 +271,11 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   @Override
   public void setDefaults(ILaunchConfigurationWorkingCopy configuration) {
     project = findProject(configuration);
-    MajorVersion version = getMajorVersion(project);
-    launchConfiguration = PipelineLaunchConfiguration.createDefault(version);
-    launchConfiguration.toLaunchConfiguration(configuration);
+    if (project != null) {
+      MajorVersion version = getMajorVersion(project);
+      launchConfiguration = PipelineLaunchConfiguration.createDefault(version);
+      launchConfiguration.toLaunchConfiguration(configuration);
+    }
   }
 
   @Override
@@ -365,6 +367,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     return majorVersion;
   }
 
+  /** Find the corresponding project or {@code null} if not found. */
   private final IProject findProject(ILaunchConfiguration launchConfiguration) {
     try {
       String eclipseProjectName =
@@ -373,7 +376,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
         return workspaceRoot.getProject(eclipseProjectName);
       }
     } catch (CoreException ex) {
-      // ignore
+      DataflowUiPlugin.logWarning("Exception when determining project", ex); //$NON-NLS-1$
     }
     return null;
   }
