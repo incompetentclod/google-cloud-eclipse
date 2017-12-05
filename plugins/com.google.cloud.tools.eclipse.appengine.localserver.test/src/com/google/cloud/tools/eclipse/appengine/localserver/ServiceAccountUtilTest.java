@@ -18,6 +18,7 @@ package com.google.cloud.tools.eclipse.appengine.localserver;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -86,6 +87,7 @@ public class ServiceAccountUtilTest {
     try {
       ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(apiFactory, credential,
           "my-project", Paths.get("relative/path/to.json"));
+      fail();
     } catch (IllegalArgumentException e) {
       assertEquals("destination not absolute", e.getMessage());
     }
@@ -93,8 +95,8 @@ public class ServiceAccountUtilTest {
 
   @Test
   public void testCreateServiceAccountKey() throws IOException {
-    ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(apiFactory, credential, "my-project",
-        keyFile);
+    ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(apiFactory, credential,
+        "my-project", keyFile);
 
     byte[] bytesRead = Files.readAllBytes(keyFile);
     assertEquals("key data in JSON format", new String(bytesRead, StandardCharsets.UTF_8));
@@ -132,6 +134,7 @@ public class ServiceAccountUtilTest {
     try {
       ServiceAccountUtil.createAppEngineDefaultServiceAccountKey(apiFactory, credential,
           "my-project", keyFile);
+      fail();
     } catch (IOException e) {
       assertEquals("log from unit test", e.getMessage());
     }
