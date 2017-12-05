@@ -125,7 +125,12 @@ public class DataflowPipelineLaunchDelegate implements ILaunchConfigurationDeleg
     MajorVersion majorVersion = dependencyManager.getProjectMajorVersion(project);
 
     PipelineLaunchConfiguration pipelineConfig =
-        PipelineLaunchConfiguration.fromLaunchConfiguration(configuration, majorVersion);
+        PipelineLaunchConfiguration.fromLaunchConfiguration(configuration);
+    PipelineRunner pipelineRunner = pipelineConfig.getRunner();
+    if (pipelineRunner == null) {
+      pipelineRunner = PipelineLaunchConfiguration.defaultRunner(majorVersion);
+    }
+
     PipelineOptionsHierarchy hierarchy;
     try {
       hierarchy = optionsRetrieverFactory.forProject(project, majorVersion, progress.newChild(1));
@@ -143,7 +148,7 @@ public class DataflowPipelineLaunchDelegate implements ILaunchConfigurationDeleg
     Map<String, String> effectiveArguments = getEffectiveArguments(pipelineConfig, preferences);
 
     List<String> argComponents =
-        getArguments(configuration, pipelineConfig, hierarchy, effectiveArguments);
+        getArguments(configuration, pipelineRunner, pipelineConfig, hierarchy, effectiveArguments);
 
     ILaunchConfigurationWorkingCopy workingCopy =
         configuration.copy(DATAFLOW_LAUNCH_CONFIG_WORKING_COPY_PREFIX + configuration.getName());
@@ -153,8 +158,9 @@ public class DataflowPipelineLaunchDelegate implements ILaunchConfigurationDeleg
     String accountEmail = effectiveArguments.get("accountEmail");
     setLoginCredential(workingCopy, accountEmail);
 
+    PipelineRunner runner = pipelineConfig.getRunner();
     AnalyticsPingManager.getInstance().sendPing(AnalyticsEvents.DATAFLOW_RUN,
-        AnalyticsEvents.DATAFLOW_RUN_RUNNER, pipelineConfig.getRunner().getRunnerName());
+        AnalyticsEvents.DATAFLOW_RUN_RUNNER, runner.getRunnerName());
 
     delegate.launch(workingCopy, mode, launch, progress.newChild(1));
   }
@@ -208,6 +214,7 @@ public class DataflowPipelineLaunchDelegate implements ILaunchConfigurationDeleg
 
   private List<String> getArguments(
       ILaunchConfiguration configuration,
+      PipelineRunner runner,
       PipelineLaunchConfiguration pipelineConfig,
       PipelineOptionsHierarchy optionsHierarchy,
       Map<String, String> effectiveArguments)
@@ -215,16 +222,15 @@ public class DataflowPipelineLaunchDelegate implements ILaunchConfigurationDeleg
     List<String> argComponents = new ArrayList<>();
 
     argComponents.add(String.format(ARGUMENT_FORMAT_STR, RUNNER_COMMAND_LINE_STRING,
-        pipelineConfig.getRunner().getRunnerName()));
+        runner.getRunnerName()));
 
     Set<String> pipelineArgs;
-    if (pipelineConfig.getUserOptionsName() != null
-        && !pipelineConfig.getUserOptionsName().isEmpty()) {
+    if (!Strings.isNullOrEmpty(pipelineConfig.getUserOptionsName())) {
       pipelineArgs = optionsHierarchy.getPropertyNames(
-          pipelineConfig.getRunner().getOptionsClass(), pipelineConfig.getUserOptionsName());
+          runner.getOptionsClass(), pipelineConfig.getUserOptionsName());
     } else {
       pipelineArgs =
-          optionsHierarchy.getPropertyNames(pipelineConfig.getRunner().getOptionsClass());
+          optionsHierarchy.getPropertyNames(runner.getOptionsClass());
     }
 
     for (Map.Entry<String, String> argValueEntry : effectiveArguments.entrySet()) {

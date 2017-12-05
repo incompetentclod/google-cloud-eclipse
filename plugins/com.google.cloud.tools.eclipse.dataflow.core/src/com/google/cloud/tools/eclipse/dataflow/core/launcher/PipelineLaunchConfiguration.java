@@ -55,23 +55,13 @@ public class PipelineLaunchConfiguration {
   private Optional<String> userOptionsName;
 
   /**
-   * Construct a DataflowPipelineLaunchConfiguration from the provided {@link ILaunchConfiguration}
-   * using the provided project version to determine suitable defaults.
+   * Construct a DataflowPipelineLaunchConfiguration from the provided {@link ILaunchConfiguration}.
    */
   public static PipelineLaunchConfiguration fromLaunchConfiguration(
-      ILaunchConfiguration launchConfiguration, MajorVersion projectVersion) throws CoreException {
-    PipelineLaunchConfiguration configuration =
-        new PipelineLaunchConfiguration(defaultRunner(projectVersion));
+      ILaunchConfiguration launchConfiguration) throws CoreException {
+    PipelineLaunchConfiguration configuration = new PipelineLaunchConfiguration();
     configuration.setValuesFromLaunchConfiguration(launchConfiguration);
     return configuration;
-  }
-
-  public static PipelineLaunchConfiguration createDefault() {
-    return createDefault(MajorVersion.ONE);
-  }
-
-  public static PipelineLaunchConfiguration createDefault(MajorVersion version) {
-    return new PipelineLaunchConfiguration(defaultRunner(version));
   }
 
   public static PipelineRunner defaultRunner(MajorVersion majorVersion) {
@@ -83,6 +73,11 @@ public class PipelineLaunchConfiguration {
     }
   }
 
+  /** Create a new pipeline launch configuration with no default runner. */
+  public PipelineLaunchConfiguration() {
+    this(null);
+  }
+
   private PipelineLaunchConfiguration(PipelineRunner runner) {
     this.runner = runner;
     this.argumentValues = Collections.<String, String>emptyMap();
@@ -92,6 +87,7 @@ public class PipelineLaunchConfiguration {
     this.userOptionsName = Optional.absent();
   }
 
+  /** Return the configured runner. */
   public PipelineRunner getRunner() {
     return runner;
   }
@@ -126,8 +122,12 @@ public class PipelineLaunchConfiguration {
 
   private void setValuesFromLaunchConfiguration(ILaunchConfiguration configuration)
       throws CoreException {
-    setRunner(PipelineRunner.fromRunnerName(configuration.getAttribute(
-        PipelineConfigurationAttr.RUNNER_ARGUMENT.toString(), getRunner().getRunnerName())));
+    // never set a default runner unless actually specified
+    String runnerArgument = configuration
+        .getAttribute(PipelineConfigurationAttr.RUNNER_ARGUMENT.toString(), (String) null);
+    if (runnerArgument != null) {
+      setRunner(PipelineRunner.fromRunnerName(runnerArgument));
+    }
 
     setUseDefaultLaunchOptions(configuration.getAttribute(
         PipelineConfigurationAttr.USE_DEFAULT_LAUNCH_OPTIONS.toString(),
@@ -145,8 +145,10 @@ public class PipelineLaunchConfiguration {
    * {@link ILaunchConfigurationWorkingCopy}.
    */
   public void toLaunchConfiguration(ILaunchConfigurationWorkingCopy configuration) {
-    configuration.setAttribute(
-        PipelineConfigurationAttr.RUNNER_ARGUMENT.toString(), runner.getRunnerName());
+    if (runner != null) {
+      configuration.setAttribute(PipelineConfigurationAttr.RUNNER_ARGUMENT.toString(),
+          runner.getRunnerName());
+    }
     configuration.setAttribute(
         PipelineConfigurationAttr.USE_DEFAULT_LAUNCH_OPTIONS.toString(), useDefaultLaunchOptions);
     configuration.setAttribute(
@@ -296,7 +298,7 @@ public class PipelineLaunchConfiguration {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(getClass())
-        .add("runnerName", runner.getRunnerName())
+        .add("runnerName", runner != null ? runner.getRunnerName() : "(default runner)")
         .add("argumentValues", argumentValues).toString();
   }
 

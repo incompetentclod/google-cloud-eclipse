@@ -271,15 +271,22 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   @Override
   public void setDefaults(ILaunchConfigurationWorkingCopy configuration) {
     project = findProject(configuration);
-    if (project != null) {
-      MajorVersion version = getMajorVersion(project);
-      launchConfiguration = PipelineLaunchConfiguration.createDefault(version);
-      launchConfiguration.toLaunchConfiguration(configuration);
+    if (project == null) {
+      return;
     }
+    MajorVersion version = dependencyManager.getProjectMajorVersion(project);
+    if (version == null) {
+      return;
+    }
+    launchConfiguration = PipelineLaunchConfiguration.createDefault(version);
+    launchConfiguration.toLaunchConfiguration(configuration);
   }
 
   @Override
   public void performApply(ILaunchConfigurationWorkingCopy configuration) {
+    if (!internalComposite.isEnabled()) {
+      return;
+    }
     PipelineRunner runner = getSelectedRunner();
     launchConfiguration.setRunner(runner);
 
@@ -311,8 +318,15 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   public void initializeFrom(ILaunchConfiguration configuration) {
     try {
       reload(configuration);
+      
+      boolean enabled = project != null && majorVersion != null && launchConfiguration != null;
+      internalComposite.setEnabled(enabled);
+      if (!enabled) {
+        setErrorMessage("Project is not configured for Dataflow");
+        return;
+      }
 
-      updateRunnerButtons(majorVersion);
+      updateRunnerButtons();
 
       defaultOptionsComponent.setUseDefaultValues(launchConfiguration.isUseDefaultLaunchOptions());
       defaultOptionsComponent.setPreferences(getPreferences());
@@ -341,9 +355,10 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
       throws CoreException, InvocationTargetException, InterruptedException {
     // recompute the features of interest from the provided launch configuration
     IProject project = findProject(configuration);
-    MajorVersion majorVersion = getMajorVersion(project);
-    PipelineLaunchConfiguration launchConfiguration =
-        PipelineLaunchConfiguration.fromLaunchConfiguration(configuration, majorVersion);
+    MajorVersion majorVersion = project == null || !project.isAccessible() ? null
+        : dependencyManager.getProjectMajorVersion(project);
+    PipelineLaunchConfiguration launchConfiguration = majorVersion == null ? null
+        : PipelineLaunchConfiguration.fromLaunchConfiguration(configuration, majorVersion);
     if (Objects.equals(project, this.project) && Objects.equals(majorVersion, this.majorVersion)
         && Objects.equals(launchConfiguration, this.launchConfiguration)) {
       // our features of interest are the same
@@ -354,17 +369,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     this.launchConfiguration = launchConfiguration;
     updateHierarchy();
     return true;
-  }
-
-  private MajorVersion getMajorVersion(IProject project) {
-    MajorVersion majorVersion = MajorVersion.ONE;
-    if (project != null && project.isAccessible()) {
-       majorVersion = dependencyManager.getProjectMajorVersion(project);
-       if (majorVersion == null) {
-          majorVersion = MajorVersion.ONE;
-       }
-    }
-    return majorVersion;
   }
 
   /** Find the corresponding project or {@code null} if not found. */
@@ -384,7 +388,8 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
 
   @VisibleForTesting
-  void updateRunnerButtons(MajorVersion majorVersion) {
+  void updateRunnerButtons() {
+    Preconditions.checkNotNull(majorVersion);
     populateRunners(majorVersion);
     for (Button button : runnerButtons.values()) {
       button.setSelection(false);
@@ -488,6 +493,10 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   private boolean validatePage() {
+    if (project == null || majorVersion == null) {
+      setErrorMessage("Unable to determine Dataflow version");
+      return false;
+    }
     MissingRequiredProperties validationFailures =
         launchConfiguration.getMissingRequiredProperties(hierarchy, getPreferences());
 

@@ -125,7 +125,23 @@ public class DataflowDependencyManager {
         || Artifact.RELEASE_VERSION.equals(dependency.getVersion()));
   }
 
+  /**
+   * Returns a possible version range for the given project.
+   * 
+   * @throws IllegalStateException if the version range is invalid
+   */
   public VersionRange getDataflowVersionRange(IProject project) {
+    VersionRange actual = getActualDataflowVersionRange(project);
+    return actual != null ? actual : allVersions();
+  }
+
+  /**
+   * Returns the encoded version range for the given project or {@code null} if not found.
+   * 
+   * @return the version range or {@code null} if not found
+   * @throws IllegalStateException if the version range is invalid
+   */
+  private VersionRange getActualDataflowVersionRange(IProject project) {
     Model model = getModelFromProject(project);
     if (model != null) {
       Dependency dependency = getDataflowDependencyFromModel(model);
@@ -142,7 +158,7 @@ public class DataflowDependencyManager {
         }
       }
     }
-    return allVersions();
+    return null;
   }
 
   private VersionRange allVersions() {
@@ -155,7 +171,10 @@ public class DataflowDependencyManager {
   }
 
   public MajorVersion getProjectMajorVersion(IProject project) {
-    VersionRange projectVersionRange = getDataflowVersionRange(project);
+    VersionRange projectVersionRange = getActualDataflowVersionRange(project);
+    if (projectVersionRange == null) {
+      return null;
+    }
     if (projectVersionRange.getRecommendedVersion() != null) {
       return MajorVersion.fromVersion(projectVersionRange.getRecommendedVersion());
     } else {
