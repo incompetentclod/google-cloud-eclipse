@@ -47,6 +47,7 @@ import org.eclipse.jdt.ui.wizards.IClasspathContainerPageExtension;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
@@ -108,7 +109,9 @@ public class CloudLibrariesPage extends WizardPage
   @Override
   public void createControl(Composite parent) {
     Preconditions.checkNotNull(libraryGroups, "Library groups must be set"); //$NON-NLS-1$
-    Composite composite = new Group(parent, SWT.NONE);
+
+    ScrolledComposite scrolledComposite = new ScrolledComposite(parent, SWT.V_SCROLL);
+    Composite composite = new Group(scrolledComposite, SWT.NONE);
 
     IProjectFacetVersion facetVersion =
         AppEngineStandardFacet.getProjectFacetVersion(project.getProject());
@@ -123,7 +126,14 @@ public class CloudLibrariesPage extends WizardPage
     }
     setSelectedLibraries(initialSelection);
     composite.setLayout(new RowLayout(SWT.HORIZONTAL));
-    setControl(composite);
+    composite.pack();
+
+    scrolledComposite.setContent(composite);
+    scrolledComposite.setMinSize(composite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+    scrolledComposite.setShowFocusedControl(true);
+    scrolledComposite.pack();
+
+    setControl(scrolledComposite);
   }
 
   @Override
