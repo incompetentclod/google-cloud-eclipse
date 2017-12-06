@@ -48,6 +48,7 @@ import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
@@ -131,7 +132,7 @@ public class CloudLibrariesPage extends WizardPage
     scrolledComposite.setContent(composite);
     scrolledComposite.setMinSize(composite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
     scrolledComposite.setShowFocusedControl(true);
-    scrolledComposite.pack();
+    scrolledComposite.setLayout(new FillLayout());
 
     setControl(scrolledComposite);
   }
