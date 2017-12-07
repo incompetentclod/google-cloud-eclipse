@@ -31,7 +31,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.tools.eclipse.dataflow.core.launcher.PipelineConfigurationAttr;
-import com.google.cloud.tools.eclipse.dataflow.core.launcher.PipelineRunner;
+import com.google.cloud.tools.eclipse.dataflow.core.launcher.PipelineLaunchConfiguration;
 import com.google.cloud.tools.eclipse.dataflow.core.project.DataflowDependencyManager;
 import com.google.cloud.tools.eclipse.dataflow.core.project.MajorVersion;
 import com.google.cloud.tools.eclipse.test.util.project.ProjectUtils;
@@ -236,14 +236,17 @@ public class PipelineArgumentsTabTest {
     }
 
     @Test
-    public void assertRunnerButtonChecked() {
+    public void assertRunnerButtonChecked() throws CoreException {
       ILaunchConfigurationDialog dialog = mock(ILaunchConfigurationDialog.class);
       Shell shell = shellResource.getShell();
       PipelineArgumentsTab tab = new PipelineArgumentsTab();
       tab.setLaunchConfigurationDialog(dialog);
       tab.createControl(shell);
 
-      tab.updateRunnerButtons(testParameter.majorVersion, PipelineRunner.DIRECT_RUNNER);
+      PipelineLaunchConfiguration launchConfig =
+          PipelineLaunchConfiguration.fromLaunchConfiguration(mock(IProject.class),
+              testParameter.majorVersion, mock(ILaunchConfiguration.class));
+      tab.updateRunnerButtons(launchConfig);
       Button runnerButton = getCheckedRunnerButton(shell);
       assertNotNull(runnerButton);
       assertEquals(testParameter.expectedButtonText, runnerButton.getText());

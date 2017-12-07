@@ -111,8 +111,6 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private final PipelineOptionsHierarchyFactory pipelineOptionsHierarchyFactory =
       new ClasspathPipelineOptionsHierarchyFactory();
 
-  private IProject project;
-  private MajorVersion majorVersion;
   private PipelineLaunchConfiguration launchConfiguration;
 
   /*
@@ -322,7 +320,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
       return;
     }
 
-    updateRunnerButtons(majorVersion, launchConfiguration.getRunner());
+    updateRunnerButtons(launchConfiguration);
 
     defaultOptionsComponent.setUseDefaultValues(launchConfiguration.isUseDefaultLaunchOptions());
     defaultOptionsComponent.setPreferences(getPreferences());
@@ -350,13 +348,10 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
         : dependencyManager.getProjectMajorVersion(project);
     PipelineLaunchConfiguration launchConfiguration = majorVersion == null ? null
         : PipelineLaunchConfiguration.fromLaunchConfiguration(project, majorVersion, configuration);
-    if (Objects.equals(project, this.project) && Objects.equals(majorVersion, this.majorVersion)
-        && Objects.equals(launchConfiguration, this.launchConfiguration)) {
+    if (Objects.equals(launchConfiguration, this.launchConfiguration)) {
       // our features of interest are the same
       return false;
     }
-    this.project = project;
-    this.majorVersion = majorVersion;
     this.launchConfiguration = launchConfiguration;
     updateHierarchy();
     return true;
@@ -379,20 +374,22 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
 
   @VisibleForTesting
-  void updateRunnerButtons(MajorVersion majorVersion, PipelineRunner runner) {
-    Preconditions.checkNotNull(majorVersion);
+  void updateRunnerButtons(PipelineLaunchConfiguration launchConfiguration) {
+    Preconditions.checkNotNull(launchConfiguration);
+    MajorVersion majorVersion = launchConfiguration.getMajorVersion();
     populateRunners(majorVersion);
     for (Button button : runnerButtons.values()) {
       button.setSelection(false);
     }
 
+    PipelineRunner runner = launchConfiguration.getRunner();
     if (!runner.getSupportedVersions().contains(majorVersion)) {
       runner = PipelineLaunchConfiguration.defaultRunner(majorVersion);
       DataflowUiPlugin.logInfo("Changed pipeline runner to '%s'", runner.getRunnerName());
     }
     Button runnerButton = runnerButtons.get(runner);
     Preconditions.checkNotNull(runnerButton,
-        "runners for %s should always include the default runner", majorVersion); //$NON-NLS-1$
+        "runners for %s should always include %s", majorVersion, runner); //$NON-NLS-1$
     runnerButton.setSelection(true);
     runnerGroup.getParent().redraw();
   }
@@ -415,20 +412,22 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   private DataflowPreferences getPreferences() {
-    if (project != null && project.isAccessible()) {
-      return ProjectOrWorkspaceDataflowPreferences.forProject(project);
+    if (launchConfiguration != null && launchConfiguration.getProject().isAccessible()) {
+      return ProjectOrWorkspaceDataflowPreferences.forProject(launchConfiguration.getProject());
     } else {
       return ProjectOrWorkspaceDataflowPreferences.forWorkspace();
     }
   }
 
   private PipelineOptionsHierarchy getPipelineOptionsHierarchy(IProgressMonitor monitor) {
-    if (project != null && project.isAccessible()) {
+    if (launchConfiguration != null && launchConfiguration.getProject().isAccessible()) {
       try {
-        return pipelineOptionsHierarchyFactory.forProject(project, majorVersion, monitor);
+        return pipelineOptionsHierarchyFactory.forProject(launchConfiguration.getProject(),
+            launchConfiguration.getMajorVersion(), monitor);
       } catch (PipelineOptionsRetrievalException e) {
         DataflowUiPlugin.logWarning(
-            "Couldn't retrieve Pipeline Options Hierarchy for project %s", project); //$NON-NLS-1$
+            "Couldn't retrieve Pipeline Options Hierarchy for project %s", //$NON-NLS-1$
+            launchConfiguration.getProject());
         return pipelineOptionsHierarchyFactory.global(monitor);
       }
     }
@@ -487,7 +486,8 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     if (launchConfiguration == null) {
       setErrorMessage("Project is not configured for Dataflow");
       return false;
-    } else if (!launchConfiguration.getRunner().getSupportedVersions().contains(majorVersion)) {
+    } else if (!launchConfiguration.getRunner().getSupportedVersions()
+        .contains(launchConfiguration.getMajorVersion())) {
       setErrorMessage(
           "Incompatible pipeline runner: " + launchConfiguration.getRunner().getRunnerName());
       return false;

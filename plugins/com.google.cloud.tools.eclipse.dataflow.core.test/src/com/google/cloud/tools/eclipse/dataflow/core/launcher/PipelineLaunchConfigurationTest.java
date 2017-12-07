@@ -51,7 +51,8 @@ public class PipelineLaunchConfigurationTest {
 
   @Test
   public void testCreateDefaultCreatesWithDefaultValues() {
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     assertTrue(lc.getArgumentValues().isEmpty());
     assertEquals(PipelineLaunchConfiguration.defaultRunner(majorVersion), lc.getRunner());
   }
@@ -67,7 +68,8 @@ public class PipelineLaunchConfigurationTest {
             .put("Ham", "bar")
             .put("Eggs", "baz")
             .build();
-    when(launchConfiguration.getAttribute(PipelineConfigurationAttr.ALL_ARGUMENT_VALUES.toString(),
+    when(launchConfiguration.getAttribute(
+        eq(PipelineConfigurationAttr.ALL_ARGUMENT_VALUES.toString()),
         anyMapOf(String.class, String.class))).thenReturn(requiredArgumentValues);
 
     // set a different runner from the default
@@ -87,7 +89,8 @@ public class PipelineLaunchConfigurationTest {
   @Test
   public void testToLaunchConfigurationWritesArgumentsToLaunchConfiguration() {
     final PipelineRunner runner = PipelineRunner.DATAFLOW_PIPELINE_RUNNER;
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
 
     Map<String, String> argValues =
         ImmutableMap.<String, String>builder()
@@ -119,7 +122,8 @@ public class PipelineLaunchConfigurationTest {
         propertyName, false, true, Collections.<String>emptySet(), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUseDefaultLaunchOptions(true);
     lc.setUserOptionsName("myType");
 
@@ -140,7 +144,8 @@ public class PipelineLaunchConfigurationTest {
         DataflowPreferences.PROJECT_PROPERTY, false, true, Collections.<String>emptySet(), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUseDefaultLaunchOptions(false);
     lc.setUserOptionsName("myType");
 
@@ -161,7 +166,8 @@ public class PipelineLaunchConfigurationTest {
         DataflowPreferences.PROJECT_PROPERTY, false, true, Collections.<String>emptySet(), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUseDefaultLaunchOptions(true);
     lc.setUserOptionsName("myType");
 
@@ -185,7 +191,8 @@ public class PipelineLaunchConfigurationTest {
         DataflowPreferences.PROJECT_PROPERTY, false, true, Collections.<String>emptySet(), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setArgumentValues(
         ImmutableMap.<String, String>builder()
             .put(DataflowPreferences.PROJECT_PROPERTY, "bar")
@@ -211,7 +218,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty("foo", false, true, Collections.<String>emptySet(), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUseDefaultLaunchOptions(true);
     lc.setUserOptionsName("myType");
 
@@ -232,7 +240,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty("foo", false, true, Collections.<String>emptySet(), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUseDefaultLaunchOptions(false);
     lc.setUserOptionsName("myType");
 
@@ -253,7 +262,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty("foo", false, true, Collections.<String>emptySet(), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUseDefaultLaunchOptions(true);
     lc.setUserOptionsName("myType");
     lc.setArgumentValues(ImmutableMap.<String, String>builder().put("foo", "bar").build());
@@ -275,7 +285,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty("foo", false, true, Collections.<String>emptySet(), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUseDefaultLaunchOptions(false);
     lc.setUserOptionsName("myType");
     lc.setArgumentValues(ImmutableMap.<String, String>builder().put("foo", "bar").build());
@@ -299,7 +310,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty(propertyName, false, true, ImmutableSet.of(groupName), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUserOptionsName("myType");
     lc.setUseDefaultLaunchOptions(true);
 
@@ -323,7 +335,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty(propertyName, false, true, ImmutableSet.of(groupName), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUserOptionsName("myType");
     lc.setUseDefaultLaunchOptions(false);
 
@@ -347,7 +360,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty(propertyName, false, true, ImmutableSet.of(groupName), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUserOptionsName("myType");
     lc.setUseDefaultLaunchOptions(true);
 
@@ -373,7 +387,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty(propertyName, false, true, ImmutableSet.of(groupName), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUseDefaultLaunchOptions(false);
     lc.setUserOptionsName("myType");
     lc.setArgumentValues(
@@ -401,7 +416,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty(propertyName, false, true, ImmutableSet.of(groupName), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUserOptionsName("myType");
     lc.setUseDefaultLaunchOptions(true);
 
@@ -424,7 +440,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty(propertyName, false, true, ImmutableSet.of(groupName), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUserOptionsName("myType");
     lc.setUseDefaultLaunchOptions(false);
 
@@ -447,7 +464,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty(propertyName, false, true, ImmutableSet.of(groupName), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUseDefaultLaunchOptions(true);
     lc.setUserOptionsName("myType");
     lc.setArgumentValues(ImmutableMap.<String, String>builder().put("foo", "bar").build());
@@ -468,7 +486,8 @@ public class PipelineLaunchConfigurationTest {
         new PipelineOptionsProperty("foo", false, true, Collections.<String>emptySet(), null);
     PipelineOptionsHierarchy opts = options(property);
 
-    PipelineLaunchConfiguration lc = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration lc =
+        new PipelineLaunchConfiguration(mock(IProject.class), majorVersion);
     lc.setUseDefaultLaunchOptions(false);
     lc.setUserOptionsName("myType");
     lc.setArgumentValues(ImmutableMap.<String, String>builder().put("foo", "bar").build());

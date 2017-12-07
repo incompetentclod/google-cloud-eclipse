@@ -54,17 +54,16 @@ public class PipelineLaunchConfiguration {
   private final IProject project;
   private final MajorVersion majorVersion;
 
-  private boolean useDefaultLaunchOptions;
   private PipelineRunner runner;
-  private Map<String, String> argumentValues;
-  private Optional<String> userOptionsName;
+  private boolean useDefaultLaunchOptions = true;
+  private Map<String, String> argumentValues = Collections.<String, String>emptyMap();
+  private Optional<String> userOptionsName = Optional.absent();
 
   /**
    * Construct a DataflowPipelineLaunchConfiguration from the provided {@link ILaunchConfiguration}.
    */
   public static PipelineLaunchConfiguration fromLaunchConfiguration(IProject project,
-      MajorVersion majorVersion,
-      ILaunchConfiguration launchConfiguration) throws CoreException {
+      MajorVersion majorVersion, ILaunchConfiguration launchConfiguration) throws CoreException {
     PipelineLaunchConfiguration configuration =
         new PipelineLaunchConfiguration(project, majorVersion);
     configuration.setValuesFromLaunchConfiguration(launchConfiguration);
@@ -82,19 +81,11 @@ public class PipelineLaunchConfiguration {
 
   /** Create a new pipeline launch configuration with no default runner. */
   @VisibleForTesting
-  PipelineLaunchConfiguration() {
-    this(null, null);
-  }
-
-  private PipelineLaunchConfiguration(IProject project, MajorVersion majorVersion) {
+  PipelineLaunchConfiguration(IProject project, MajorVersion majorVersion) {
     Preconditions.checkNotNull(project);
     Preconditions.checkNotNull(majorVersion);
     this.project = project;
     this.majorVersion = majorVersion;
-
-    this.useDefaultLaunchOptions = true;
-    this.argumentValues = Collections.<String, String>emptyMap();
-    this.userOptionsName = Optional.absent();
   }
 
   /**
@@ -133,6 +124,41 @@ public class PipelineLaunchConfiguration {
 
   public void setUseDefaultLaunchOptions(boolean useDefaultLaunchOptions) {
     this.useDefaultLaunchOptions = useDefaultLaunchOptions;
+  }
+
+  public IProject getProject() {
+    return project;
+  }
+
+  public MajorVersion getMajorVersion() {
+    return majorVersion;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    } else if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    PipelineLaunchConfiguration other = (PipelineLaunchConfiguration) obj;
+    return Objects.equals(project, other.project)
+        && Objects.equals(majorVersion, other.majorVersion)
+        && Objects.equals(argumentValues, other.argumentValues)
+        && Objects.equals(runner, other.runner)
+        && Objects.equals(userOptionsName, other.userOptionsName);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(project, majorVersion, argumentValues, runner, userOptionsName);
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(getClass())
+        .add("runnerName", runner != null ? runner.getRunnerName() : "(default runner)")
+        .add("argumentValues", argumentValues).toString();
   }
 
   private void setValuesFromLaunchConfiguration(ILaunchConfiguration configuration)
@@ -290,33 +316,6 @@ public class PipelineLaunchConfiguration {
     } else {
       return !Strings.isNullOrEmpty(argumentValues.get(propertyName));
     }
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    } else if (obj == null || getClass() != obj.getClass()) {
-      return false;
-    }
-    PipelineLaunchConfiguration other = (PipelineLaunchConfiguration) obj;
-    return Objects.equals(project, other.project)
-        && Objects.equals(majorVersion, other.majorVersion)
-        && Objects.equals(argumentValues, other.argumentValues)
-        && Objects.equals(runner, other.runner)
-        && Objects.equals(userOptionsName, other.userOptionsName);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(argumentValues, runner, userOptionsName);
-  }
-
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(getClass())
-        .add("runnerName", runner != null ? runner.getRunnerName() : "(default runner)")
-        .add("argumentValues", argumentValues).toString();
   }
 
   /**
