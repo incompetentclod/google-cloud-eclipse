@@ -44,14 +44,11 @@ import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.ui.wizards.IClasspathContainerPage;
 import org.eclipse.jdt.ui.wizards.IClasspathContainerPageExtension;
+import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.ScrolledComposite;
-import org.eclipse.swt.layout.FillLayout;
-import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Group;
 import org.eclipse.wst.common.project.facet.core.IProjectFacetVersion;
 
 /**
@@ -110,9 +107,7 @@ public class CloudLibrariesPage extends WizardPage
   @Override
   public void createControl(Composite parent) {
     Preconditions.checkNotNull(libraryGroups, "Library groups must be set"); //$NON-NLS-1$
-
-    ScrolledComposite scrolledComposite = new ScrolledComposite(parent, SWT.V_SCROLL);
-    Composite composite = new Group(scrolledComposite, SWT.NONE);
+    Composite composite = new Composite(parent, SWT.NONE);
 
     IProjectFacetVersion facetVersion =
         AppEngineStandardFacet.getProjectFacetVersion(project.getProject());
@@ -126,15 +121,10 @@ public class CloudLibrariesPage extends WizardPage
       librariesSelectors.add(librariesSelector);
     }
     setSelectedLibraries(initialSelection);
-    composite.setLayout(new RowLayout(SWT.HORIZONTAL));
-    composite.pack();
 
-    scrolledComposite.setContent(composite);
-    scrolledComposite.setMinSize(composite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
-    scrolledComposite.setShowFocusedControl(true);
-    scrolledComposite.setLayout(new FillLayout());
+    GridLayoutFactory.fillDefaults().numColumns(libraryGroups.size()).generateLayout(composite);
 
-    setControl(scrolledComposite);
+    setControl(composite);
   }
 
   @Override
