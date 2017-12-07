@@ -107,7 +107,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private TextAndButtonComponent userOptionsSelector;
   private PipelineOptionsFormComponent pipelineOptionsForm;
 
-  private final DataflowDependencyManager dependencyManager = DataflowDependencyManager.create();
+  private final DataflowDependencyManager dependencyManager;
   private final PipelineOptionsHierarchyFactory pipelineOptionsHierarchyFactory =
       new ClasspathPipelineOptionsHierarchyFactory();
 
@@ -124,18 +124,18 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private PipelineOptionsHierarchy hierarchy;
 
   public PipelineArgumentsTab() {
-    this(ResourcesPlugin.getWorkspace().getRoot());
+    this(ResourcesPlugin.getWorkspace().getRoot(), DataflowDependencyManager.create());
   }
 
   @VisibleForTesting
-  PipelineArgumentsTab(IWorkspaceRoot workspaceRoot) {
+  PipelineArgumentsTab(IWorkspaceRoot workspaceRoot, DataflowDependencyManager dependencyManager) {
     this.workspaceRoot = workspaceRoot;
+    this.dependencyManager = dependencyManager;
     hierarchy = pipelineOptionsHierarchyFactory.global(new NullProgressMonitor());
   }
 
   @Override
   public void createControl(Composite parent) {
-    launchConfiguration = PipelineLaunchConfiguration.createDefault();
     displayExecutor = DisplayExecutor.create(parent.getDisplay());
     composite = new ScrolledComposite(parent, SWT.V_SCROLL);
     composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
@@ -269,18 +269,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   @Override
-  public void setDefaults(ILaunchConfigurationWorkingCopy configuration) {
-    project = findProject(configuration);
-    if (project == null) {
-      return;
-    }
-    MajorVersion version = dependencyManager.getProjectMajorVersion(project);
-    if (version == null) {
-      return;
-    }
-    launchConfiguration = PipelineLaunchConfiguration.createDefault(version);
-    launchConfiguration.toLaunchConfiguration(configuration);
-  }
+  public void setDefaults(ILaunchConfigurationWorkingCopy configuration) {}
 
   @Override
   public void performApply(ILaunchConfigurationWorkingCopy configuration) {
@@ -318,29 +307,31 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   public void initializeFrom(ILaunchConfiguration configuration) {
     try {
       reload(configuration);
-      
-      boolean enabled = project != null && majorVersion != null && launchConfiguration != null;
-      internalComposite.setEnabled(enabled);
-      if (!enabled) {
-        setErrorMessage("Project is not configured for Dataflow");
-        return;
-      }
-
-      updateRunnerButtons();
-
-      defaultOptionsComponent.setUseDefaultValues(launchConfiguration.isUseDefaultLaunchOptions());
-      defaultOptionsComponent.setPreferences(getPreferences());
-      defaultOptionsComponent.setCustomValues(launchConfiguration.getArgumentValues());
-
-      String userOptionsName = launchConfiguration.getUserOptionsName();
-      userOptionsSelector.setText(Strings.nullToEmpty(userOptionsName));
-
-      updatePipelineOptionsForm();
     } catch (CoreException | InvocationTargetException | InterruptedException ex) {
       // TODO: Handle
       DataflowUiPlugin.logError(ex, 
           "Error while initializing from existing configuration"); //$NON-NLS-1$
+      internalComposite.setEnabled(false);
+      return;
     }
+
+    boolean enabled = launchConfiguration != null;
+    internalComposite.setEnabled(enabled);
+    if (!enabled) {
+      // any errors will be picked up and reported by isValid()
+      return;
+    }
+
+    updateRunnerButtons(majorVersion, launchConfiguration.getRunner());
+
+    defaultOptionsComponent.setUseDefaultValues(launchConfiguration.isUseDefaultLaunchOptions());
+    defaultOptionsComponent.setPreferences(getPreferences());
+    defaultOptionsComponent.setCustomValues(launchConfiguration.getArgumentValues());
+
+    String userOptionsName = launchConfiguration.getUserOptionsName();
+    userOptionsSelector.setText(Strings.nullToEmpty(userOptionsName));
+
+    updatePipelineOptionsForm();
   }
 
   /**
@@ -358,7 +349,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     MajorVersion majorVersion = project == null || !project.isAccessible() ? null
         : dependencyManager.getProjectMajorVersion(project);
     PipelineLaunchConfiguration launchConfiguration = majorVersion == null ? null
-        : PipelineLaunchConfiguration.fromLaunchConfiguration(configuration, majorVersion);
+        : PipelineLaunchConfiguration.fromLaunchConfiguration(project, majorVersion, configuration);
     if (Objects.equals(project, this.project) && Objects.equals(majorVersion, this.majorVersion)
         && Objects.equals(launchConfiguration, this.launchConfiguration)) {
       // our features of interest are the same
@@ -388,18 +379,18 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
 
   @VisibleForTesting
-  void updateRunnerButtons() {
+  void updateRunnerButtons(MajorVersion majorVersion, PipelineRunner runner) {
     Preconditions.checkNotNull(majorVersion);
     populateRunners(majorVersion);
     for (Button button : runnerButtons.values()) {
       button.setSelection(false);
     }
 
-    PipelineRunner runner = launchConfiguration.getRunner();
-    Button runnerButton = runnerButtons.get(runner);
-    if (runnerButton == null) {
-      runnerButton = runnerButtons.get(PipelineLaunchConfiguration.defaultRunner(majorVersion));
+    if (!runner.getSupportedVersions().contains(majorVersion)) {
+      runner = PipelineLaunchConfiguration.defaultRunner(majorVersion);
+      DataflowUiPlugin.logInfo("Changed pipeline runner to '%s'", runner.getRunnerName());
     }
+    Button runnerButton = runnerButtons.get(runner);
     Preconditions.checkNotNull(runnerButton,
         "runners for %s should always include the default runner", majorVersion); //$NON-NLS-1$
     runnerButton.setSelection(true);
@@ -493,9 +484,14 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   private boolean validatePage() {
-    if (project == null || majorVersion == null) {
-      setErrorMessage("Unable to determine Dataflow version");
+    if (launchConfiguration == null) {
+      setErrorMessage("Project is not configured for Dataflow");
       return false;
+    } else if (!launchConfiguration.getRunner().getSupportedVersions().contains(majorVersion)) {
+      setErrorMessage(
+          "Incompatible pipeline runner: " + launchConfiguration.getRunner().getRunnerName());
+      return false;
+
     }
     MissingRequiredProperties validationFailures =
         launchConfiguration.getMissingRequiredProperties(hierarchy, getPreferences());

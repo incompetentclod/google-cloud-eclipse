@@ -31,6 +31,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.tools.eclipse.dataflow.core.launcher.PipelineConfigurationAttr;
+import com.google.cloud.tools.eclipse.dataflow.core.launcher.PipelineRunner;
+import com.google.cloud.tools.eclipse.dataflow.core.project.DataflowDependencyManager;
 import com.google.cloud.tools.eclipse.dataflow.core.project.MajorVersion;
 import com.google.cloud.tools.eclipse.test.util.project.ProjectUtils;
 import com.google.cloud.tools.eclipse.test.util.ui.CompositeUtil;
@@ -53,12 +55,14 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Shell;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.junit.runners.Suite;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -73,54 +77,94 @@ public class PipelineArgumentsTabTest {
 
     @Rule public ShellTestResource shellResource = new ShellTestResource();
 
+    private IWorkspaceRoot workspaceRoot;
+    private DataflowDependencyManager dependencyManager;
+    private PipelineArgumentsTab pipelineArgumentsTab;
+
+    private IProject project1;
+    private ILaunchConfigurationWorkingCopy configuration1;
+    private IProject project2;
+    private ILaunchConfigurationWorkingCopy configuration2;
+
+    @Before
+    public void setUp() throws CoreException {
+      workspaceRoot = mock(IWorkspaceRoot.class);
+      dependencyManager = mock(DataflowDependencyManager.class);
+
+      project1 = mockProject("project1");
+      when(workspaceRoot.getProject(eq("project1"))).thenReturn(project1);
+      configuration1 = mockLaunchConfiguration();
+      when(configuration1.getAttribute(eq(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME),
+          anyString())).thenReturn("project1");
+      doReturn(MajorVersion.ONE).when(dependencyManager).getProjectMajorVersion(project1);
+
+      project2 = mockProject("project2");
+      when(workspaceRoot.getProject(eq("project2"))).thenReturn(project2);
+      configuration2 = mockLaunchConfiguration();
+      when(configuration2.getAttribute(eq(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME),
+          anyString())).thenReturn("project2");
+      doReturn(MajorVersion.TWO).when(dependencyManager).getProjectMajorVersion(project2);
+
+      ILaunchConfigurationDialog dialog = mock(ILaunchConfigurationDialog.class);
+      pipelineArgumentsTab = new PipelineArgumentsTab(workspaceRoot, dependencyManager);
+      pipelineArgumentsTab.setLaunchConfigurationDialog(dialog);
+      pipelineArgumentsTab.createControl(shellResource.getShell());
+    }
+
     @Test
     public void testGetName() {
-      Assert.assertEquals("Pipeline Arguments", new PipelineArgumentsTab().getName());
+      Assert.assertEquals("Pipeline Arguments", pipelineArgumentsTab.getName());
+    }
+
+    @Test
+    public void testSetDefaults() {
+      ILaunchConfigurationWorkingCopy configuration = mock(ILaunchConfigurationWorkingCopy.class);
+      pipelineArgumentsTab.setDefaults(configuration);
+      // we don't set any defaults
+      Mockito.verifyZeroInteractions(configuration);
     }
 
     // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/2165
     @Test
-    public void testInitializeForm_noExceptionForNonAccessibleProject() throws CoreException {
-      IWorkspaceRoot workspaceRoot = mock(IWorkspaceRoot.class);
-      when(workspaceRoot.getProject(anyString())).thenReturn(mock(IProject.class));
+    public void testInitializeFrom_noExceptionForNonAccessibleProject() throws CoreException {
+      when(project1.isAccessible()).thenReturn(false);
 
-      ILaunchConfigurationDialog dialog = mock(ILaunchConfigurationDialog.class);
-      ILaunchConfiguration configuration = mock(ILaunchConfiguration.class);
-      when(configuration.getAttribute(
-          eq(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME), anyString()))
-          .thenReturn("my-project");
-      when(configuration.getAttribute(
-          eq(PipelineConfigurationAttr.RUNNER_ARGUMENT.toString()), anyString()))
-          .thenReturn("DirectPipelineRunner");
-
-      PipelineArgumentsTab tab = new PipelineArgumentsTab(workspaceRoot);
-      tab.setLaunchConfigurationDialog(dialog);
-      tab.createControl(shellResource.getShell());
-      tab.initializeFrom(configuration);  // Should not throw NPE.
-
+      pipelineArgumentsTab.initializeFrom(configuration1); // Should not throw NPE.
       ProjectUtils.waitForProjects();  // Suppress some non-terminated-job error logs
     }
 
     @Test
     public void testReload()
         throws CoreException, InvocationTargetException, InterruptedException {
-      IWorkspaceRoot workspaceRoot = mock(IWorkspaceRoot.class);
-      when(workspaceRoot.getProject(anyString())).thenReturn(mock(IProject.class));
-      ILaunchConfigurationDialog dialog = mock(ILaunchConfigurationDialog.class);
-
-      ILaunchConfigurationWorkingCopy configuration1 = mockLaunchConfiguration();
-      ILaunchConfigurationWorkingCopy configuration2 = mockLaunchConfiguration();
-
-      PipelineArgumentsTab tab = new PipelineArgumentsTab(workspaceRoot);
-      tab.setLaunchConfigurationDialog(dialog);
-      tab.createControl(shellResource.getShell());
-
-      assertTrue(tab.reload(configuration1));
-      assertFalse("cache should be ok", tab.reload(configuration1)); //$NON-NLS-1$
+      assertTrue(pipelineArgumentsTab.reload(configuration1));
+      assertFalse("cache should be ok", pipelineArgumentsTab.reload(configuration1)); //$NON-NLS-1$
       configuration1.setAttribute(PipelineConfigurationAttr.USER_OPTIONS_NAME.toString(), "bar"); //$NON-NLS-1$
-      assertTrue("config changed, cache should be discarded", tab.reload(configuration1)); //$NON-NLS-1$
-      assertTrue("different config; cache should be discarded", tab.reload(configuration2)); //$NON-NLS-1$
-      assertTrue("config changed, cache should be discarded", tab.reload(configuration1)); //$NON-NLS-1$
+      assertTrue("config changed, cache should be discarded", //$NON-NLS-1$
+          pipelineArgumentsTab.reload(configuration1));
+      assertTrue("different config; cache should be discarded", //$NON-NLS-1$
+          pipelineArgumentsTab.reload(configuration2));
+      assertTrue("config changed, cache should be discarded", //$NON-NLS-1$
+          pipelineArgumentsTab.reload(configuration1));
+    }
+
+    @Test
+    public void testIsValid_errorOnNonDataflowProject()
+        throws CoreException, InvocationTargetException, InterruptedException {
+      doReturn(null).when(dependencyManager).getProjectMajorVersion(project1);
+
+      pipelineArgumentsTab.isValid(configuration1);
+      assertEquals("Project is not configured for Dataflow",
+          pipelineArgumentsTab.getErrorMessage());
+    }
+
+    @Test
+    public void testIsValid_errorOnNonProject()
+        throws CoreException, InvocationTargetException, InterruptedException {
+      ILaunchConfiguration configuration = mock(ILaunchConfiguration.class);
+
+      pipelineArgumentsTab.isValid(configuration);
+      assertEquals("Project is not configured for Dataflow",
+          pipelineArgumentsTab.getErrorMessage());
     }
   }
 
@@ -152,6 +196,15 @@ public class PipelineArgumentsTabTest {
     return launch;
   }
 
+  private static IProject mockProject(String projectName) {
+    IProject project = mock(IProject.class, projectName);
+    when(project.getName()).thenReturn(projectName);
+    when(project.isAccessible()).thenReturn(true);
+    when(project.isOpen()).thenReturn(true);
+    return project;
+
+  }
+
   @RunWith(Parameterized.class)
   public static class RunButtonCheckedTest {
 
@@ -172,7 +225,7 @@ public class PipelineArgumentsTabTest {
           new Parameter(MajorVersion.TWO, "DirectRunner"),
           new Parameter(MajorVersion.QUALIFIED_TWO, "DirectRunner"),
           new Parameter(MajorVersion.THREE_PLUS, "DirectRunner"),
-          new Parameter(MajorVersion.ALL, "DirectPipelineRunner"));
+          new Parameter(MajorVersion.ALL, "DirectRunner"));
     }
 
     @Rule public ShellTestResource shellResource = new ShellTestResource();
@@ -190,7 +243,7 @@ public class PipelineArgumentsTabTest {
       tab.setLaunchConfigurationDialog(dialog);
       tab.createControl(shell);
 
-      tab.updateRunnerButtons(testParameter.majorVersion);
+      tab.updateRunnerButtons(testParameter.majorVersion, PipelineRunner.DIRECT_RUNNER);
       Button runnerButton = getCheckedRunnerButton(shell);
       assertNotNull(runnerButton);
       assertEquals(testParameter.expectedButtonText, runnerButton.getText());

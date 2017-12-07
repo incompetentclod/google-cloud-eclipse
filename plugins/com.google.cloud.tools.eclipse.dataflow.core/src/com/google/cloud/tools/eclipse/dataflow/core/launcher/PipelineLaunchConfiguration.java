@@ -24,8 +24,10 @@ import com.google.cloud.tools.eclipse.dataflow.core.launcher.options.PipelineOpt
 import com.google.cloud.tools.eclipse.dataflow.core.launcher.options.PipelineOptionsType;
 import com.google.cloud.tools.eclipse.dataflow.core.preferences.DataflowPreferences;
 import com.google.cloud.tools.eclipse.dataflow.core.project.MajorVersion;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -35,6 +37,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
@@ -48,8 +51,10 @@ public class PipelineLaunchConfiguration {
    */
   static final Set<String> PROVIDED_PROPERTY_NAMES = ImmutableSet.of("runner");
 
-  private boolean useDefaultLaunchOptions;
+  private final IProject project;
+  private final MajorVersion majorVersion;
 
+  private boolean useDefaultLaunchOptions;
   private PipelineRunner runner;
   private Map<String, String> argumentValues;
   private Optional<String> userOptionsName;
@@ -57,9 +62,11 @@ public class PipelineLaunchConfiguration {
   /**
    * Construct a DataflowPipelineLaunchConfiguration from the provided {@link ILaunchConfiguration}.
    */
-  public static PipelineLaunchConfiguration fromLaunchConfiguration(
+  public static PipelineLaunchConfiguration fromLaunchConfiguration(IProject project,
+      MajorVersion majorVersion,
       ILaunchConfiguration launchConfiguration) throws CoreException {
-    PipelineLaunchConfiguration configuration = new PipelineLaunchConfiguration();
+    PipelineLaunchConfiguration configuration =
+        new PipelineLaunchConfiguration(project, majorVersion);
     configuration.setValuesFromLaunchConfiguration(launchConfiguration);
     return configuration;
   }
@@ -74,22 +81,30 @@ public class PipelineLaunchConfiguration {
   }
 
   /** Create a new pipeline launch configuration with no default runner. */
-  public PipelineLaunchConfiguration() {
-    this(null);
+  @VisibleForTesting
+  PipelineLaunchConfiguration() {
+    this(null, null);
   }
 
-  private PipelineLaunchConfiguration(PipelineRunner runner) {
-    this.runner = runner;
-    this.argumentValues = Collections.<String, String>emptyMap();
+  private PipelineLaunchConfiguration(IProject project, MajorVersion majorVersion) {
+    Preconditions.checkNotNull(project);
+    Preconditions.checkNotNull(majorVersion);
+    this.project = project;
+    this.majorVersion = majorVersion;
 
     this.useDefaultLaunchOptions = true;
-
+    this.argumentValues = Collections.<String, String>emptyMap();
     this.userOptionsName = Optional.absent();
   }
 
-  /** Return the configured runner. */
+  /**
+   * Return the configured runner if set, or the default runner. Should never be {@code null}.
+   */
   public PipelineRunner getRunner() {
-    return runner;
+    if (runner != null) {
+      return runner;
+    }
+    return defaultRunner(majorVersion);
   }
 
   public void setRunner(PipelineRunner runner) {
@@ -171,9 +186,9 @@ public class PipelineLaunchConfiguration {
     Map<PipelineOptionsType, Set<PipelineOptionsProperty>> requiredOptions;
     if (userOptionsName.isPresent()) {
       requiredOptions =
-          hierarchy.getRequiredOptionsByType(runner.getOptionsClass(), userOptionsName.get());
+          hierarchy.getRequiredOptionsByType(getRunner().getOptionsClass(), userOptionsName.get());
     } else {
-      requiredOptions = hierarchy.getRequiredOptionsByType(runner.getOptionsClass());
+      requiredOptions = hierarchy.getRequiredOptionsByType(getRunner().getOptionsClass());
     }
     return requiredOptions;
   }
@@ -285,7 +300,9 @@ public class PipelineLaunchConfiguration {
       return false;
     }
     PipelineLaunchConfiguration other = (PipelineLaunchConfiguration) obj;
-    return Objects.equals(argumentValues, other.argumentValues)
+    return Objects.equals(project, other.project)
+        && Objects.equals(majorVersion, other.majorVersion)
+        && Objects.equals(argumentValues, other.argumentValues)
         && Objects.equals(runner, other.runner)
         && Objects.equals(userOptionsName, other.userOptionsName);
   }

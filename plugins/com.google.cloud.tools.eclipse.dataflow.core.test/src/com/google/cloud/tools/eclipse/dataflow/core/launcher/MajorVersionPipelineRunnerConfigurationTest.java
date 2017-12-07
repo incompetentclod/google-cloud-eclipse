@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import com.google.cloud.tools.eclipse.dataflow.core.project.MajorVersion;
 import java.util.Arrays;
 import java.util.Set;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -32,8 +33,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.mockito.AdditionalAnswers;
 
 /**
  * Test that each {@link MajorVersion} has associated configuration settings in the
@@ -73,19 +73,13 @@ public class MajorVersionPipelineRunnerConfigurationTest {
     assertThat(runners, CoreMatchers.hasItem(defaultRunner));
   }
 
-  /** Ensure the default runner chosen is appropriate for the majorVersion. */
   @Test
   public void testFromLaunchConfiguration_defaultRunner() throws CoreException {
-    ILaunchConfiguration empty = mock(ILaunchConfiguration.class, new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        // for getAttribute(attr, default)
-        Object[] arguments = invocation.getArguments();
-        return arguments.length == 2 ? arguments[1] : null;
-      }
-    });
+    ILaunchConfiguration empty =
+        mock(ILaunchConfiguration.class, AdditionalAnswers.returnsSecondArg());
+    IProject project = mock(IProject.class);
     PipelineLaunchConfiguration lc =
-        PipelineLaunchConfiguration.fromLaunchConfiguration(empty, majorVersion);
+        PipelineLaunchConfiguration.fromLaunchConfiguration(project, majorVersion, empty);
     assertEquals(PipelineLaunchConfiguration.defaultRunner(majorVersion), lc.getRunner());
   }
 

@@ -125,11 +125,8 @@ public class DataflowPipelineLaunchDelegate implements ILaunchConfigurationDeleg
     MajorVersion majorVersion = dependencyManager.getProjectMajorVersion(project);
 
     PipelineLaunchConfiguration pipelineConfig =
-        PipelineLaunchConfiguration.fromLaunchConfiguration(configuration);
+        PipelineLaunchConfiguration.fromLaunchConfiguration(project, majorVersion, configuration);
     PipelineRunner pipelineRunner = pipelineConfig.getRunner();
-    if (pipelineRunner == null) {
-      pipelineRunner = PipelineLaunchConfiguration.defaultRunner(majorVersion);
-    }
 
     PipelineOptionsHierarchy hierarchy;
     try {
