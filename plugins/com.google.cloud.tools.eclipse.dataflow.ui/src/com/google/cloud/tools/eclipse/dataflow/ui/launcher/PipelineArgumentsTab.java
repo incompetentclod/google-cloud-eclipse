@@ -40,6 +40,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.SettableFuture;
@@ -99,12 +100,15 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private ScrolledComposite composite;
   private Composite internalComposite;
 
+  @VisibleForTesting
+  Map<PipelineRunner, Button> runnerButtons;
   private Group runnerGroup;
-  private Map<PipelineRunner, Button> runnerButtons;
 
-  private DefaultedPipelineOptionsComponent defaultOptionsComponent;
+  @VisibleForTesting
+  DefaultedPipelineOptionsComponent defaultOptionsComponent;
 
-  private TextAndButtonComponent userOptionsSelector;
+  @VisibleForTesting
+  TextAndButtonComponent userOptionsSelector;
   private PipelineOptionsFormComponent pipelineOptionsForm;
 
   private final DataflowDependencyManager dependencyManager;
@@ -212,10 +216,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   private void populateRunners(MajorVersion majorVersion) {
-    for (Control ctl : runnerGroup.getChildren()) {
-      ctl.dispose();
-    }
-    runnerButtons = new HashMap<>();
+    clearRunners();
     // TODO: Retrieve automatically instead of from a hardcoded map
     for (PipelineRunner runner : PipelineRunner.inMajorVersion(majorVersion)) {
       Button runnerButton = createRunnerButton(runnerGroup, runner);
@@ -223,6 +224,13 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
           new UpdateLaunchConfigAndRequiredArgsSelectionListener(runner));
       runnerButtons.put(runner, runnerButton);
     }
+  }
+
+  private void clearRunners() {
+    for (Control ctl : runnerGroup.getChildren()) {
+      ctl.dispose();
+    }
+    runnerButtons = new HashMap<>();
   }
 
   private Button createRunnerButton(Group runnerSelectorGroup, PipelineRunner runner) {
@@ -272,7 +280,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
   @Override
   public void performApply(ILaunchConfigurationWorkingCopy configuration) {
-    if (!internalComposite.isEnabled()) {
+    if (launchConfiguration == null) {
       return;
     }
     PipelineRunner runner = getSelectedRunner();
@@ -304,29 +312,24 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
   @Override
   public void initializeFrom(ILaunchConfiguration configuration) {
-    try {
-      reload(configuration);
-    } catch (CoreException | InvocationTargetException | InterruptedException ex) {
-      // TODO: Handle
-      DataflowUiPlugin.logError(ex, 
-          "Error while initializing from existing configuration"); //$NON-NLS-1$
-      internalComposite.setEnabled(false);
-      return;
-    }
-
-    boolean enabled = launchConfiguration != null;
-    internalComposite.setEnabled(enabled);
-    if (!enabled) {
-      // any errors will be picked up and reported by isValid()
+    reload(configuration);
+    if (launchConfiguration == null) {
+      // any errors are picked up and reported by isValid()
+      clearRunners();
+      defaultOptionsComponent.setEnabled(false);
+      userOptionsSelector.setEnabled(false);
+      pipelineOptionsForm.updateForm(null, null);
       return;
     }
 
     updateRunnerButtons(launchConfiguration);
 
+    defaultOptionsComponent.setEnabled(true);
     defaultOptionsComponent.setUseDefaultValues(launchConfiguration.isUseDefaultLaunchOptions());
     defaultOptionsComponent.setPreferences(getPreferences());
     defaultOptionsComponent.setCustomValues(launchConfiguration.getArgumentValues());
 
+    userOptionsSelector.setEnabled(true);
     String userOptionsName = launchConfiguration.getUserOptionsName();
     userOptionsSelector.setText(Strings.nullToEmpty(userOptionsName));
 
@@ -341,23 +344,30 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
    * @return true if values were reloaded, or false if the configuration was up-to-date
    */
   @VisibleForTesting
-  boolean reload(ILaunchConfiguration configuration)
-      throws CoreException, InvocationTargetException, InterruptedException {
-    // recompute the features of interest from the provided launch configuration
-    IProject project = findProject(configuration);
-    MajorVersion majorVersion = project == null || !project.isAccessible() ? null
-        : dependencyManager.getProjectMajorVersion(project);
-    PipelineLaunchConfiguration launchConfiguration = majorVersion == null ? null
-        : PipelineLaunchConfiguration.fromLaunchConfiguration(majorVersion, configuration);
-    if (Objects.equals(project, this.project)
-        && Objects.equals(launchConfiguration, this.launchConfiguration)) {
-      // our features of interest are the same
-      return false;
+  boolean reload(ILaunchConfiguration configuration) {
+    try {
+      // recompute the features of interest from the provided launch configuration
+      IProject project = findProject(configuration);
+      MajorVersion majorVersion = project == null || !project.isAccessible() ? null
+          : dependencyManager.getProjectMajorVersion(project);
+      PipelineLaunchConfiguration launchConfiguration = majorVersion == null ? null
+          : PipelineLaunchConfiguration.fromLaunchConfiguration(majorVersion, configuration);
+      if (Objects.equals(project, this.project)
+          && Objects.equals(launchConfiguration, this.launchConfiguration)) {
+        // our features of interest are the same
+        return false;
+      }
+      this.project = project;
+      this.launchConfiguration = launchConfiguration;
+      updateHierarchy();
+      return true;
+    } catch (CoreException | InvocationTargetException | InterruptedException ex) {
+      // TODO: Handle
+      DataflowUiPlugin.logError(ex, "Error while initializing from existing configuration"); //$NON-NLS-1$
+      project = null;
+      launchConfiguration = null;
+      return true;
     }
-    this.project = project;
-    this.launchConfiguration = launchConfiguration;
-    updateHierarchy();
-    return true;
   }
 
   /** Find the corresponding project or {@code null} if not found. */
@@ -423,7 +433,8 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   private PipelineOptionsHierarchy getPipelineOptionsHierarchy(IProgressMonitor monitor) {
-    if (project != null && project.isAccessible()) {
+    if (launchConfiguration != null) {
+      Verify.verify(project != null && project.isAccessible());
       try {
         return pipelineOptionsHierarchyFactory.forProject(project,
             launchConfiguration.getMajorVersion(), monitor);
@@ -534,12 +545,8 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
 
   @Override
   public boolean isValid(ILaunchConfiguration configuration) {
-    try {
-      reload(configuration);
-      return validatePage();
-    } catch (CoreException | InvocationTargetException | InterruptedException ex) {
-      return false;
-    }
+    reload(configuration);
+    return validatePage();
   }
 
   @Override

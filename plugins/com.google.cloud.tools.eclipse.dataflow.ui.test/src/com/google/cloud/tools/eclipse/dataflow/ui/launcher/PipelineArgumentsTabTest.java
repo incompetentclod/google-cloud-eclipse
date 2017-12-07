@@ -124,15 +124,6 @@ public class PipelineArgumentsTabTest {
       Mockito.verifyZeroInteractions(configuration);
     }
 
-    // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/2165
-    @Test
-    public void testInitializeFrom_noExceptionForNonAccessibleProject() throws CoreException {
-      when(project1.isAccessible()).thenReturn(false);
-
-      pipelineArgumentsTab.initializeFrom(configuration1); // Should not throw NPE.
-      ProjectUtils.waitForProjects();  // Suppress some non-terminated-job error logs
-    }
-
     @Test
     public void testReload()
         throws CoreException, InvocationTargetException, InterruptedException {
@@ -145,6 +136,31 @@ public class PipelineArgumentsTabTest {
           pipelineArgumentsTab.reload(configuration2));
       assertTrue("config changed, cache should be discarded", //$NON-NLS-1$
           pipelineArgumentsTab.reload(configuration1));
+    }
+
+    @Test
+    public void testInitializeFrom_accessibleProject() throws CoreException {
+      pipelineArgumentsTab.initializeFrom(configuration1); // Should not throw NPE.
+      // DirectPipelineRunner, DataflowPipelineRunner, BlockingDataflowPipelineRunner
+      assertEquals(3, pipelineArgumentsTab.runnerButtons.size());
+      assertTrue(pipelineArgumentsTab.defaultOptionsComponent.isEnabled());
+      assertTrue(pipelineArgumentsTab.userOptionsSelector.isEnabled());
+
+      ProjectUtils.waitForProjects(); // Suppress some non-terminated-job error logs
+    }
+
+    // https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/2165
+    @Test
+    public void testInitializeFrom_noExceptionForNonAccessibleProject() throws CoreException {
+      when(project1.isAccessible()).thenReturn(false);
+
+      pipelineArgumentsTab.initializeFrom(configuration1); // Should not throw NPE.
+      // verify tab contents are disabled
+      assertEquals(0, pipelineArgumentsTab.runnerButtons.size());
+      assertFalse(pipelineArgumentsTab.defaultOptionsComponent.isEnabled());
+      assertFalse(pipelineArgumentsTab.userOptionsSelector.isEnabled());
+
+      ProjectUtils.waitForProjects(); // Suppress some non-terminated-job error logs
     }
 
     @Test

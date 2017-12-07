@@ -432,6 +432,11 @@ public class RunOptionsDefaultsComponent {
     stagingLocationInput.addModifyListener(listener);
   }
 
+  public boolean isEnabled() {
+    // the accountSelector is the top-level item and its enablement state should reflect reality
+    return accountSelector.isEnabled();
+  }
+
   public void setEnabled(boolean enabled) {
     accountSelector.setEnabled(enabled);
     projectInput.setEnabled(enabled);

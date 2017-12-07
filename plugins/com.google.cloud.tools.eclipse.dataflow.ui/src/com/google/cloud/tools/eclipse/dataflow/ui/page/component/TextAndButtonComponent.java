@@ -17,7 +17,6 @@
 package com.google.cloud.tools.eclipse.dataflow.ui.page.component;
 
 import com.google.cloud.tools.eclipse.dataflow.ui.util.ButtonFactory;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.layout.GridData;
@@ -52,6 +51,10 @@ public class TextAndButtonComponent {
 
   public void setText(String value) {
     text.setText(value);
+  }
+
+  public boolean isEnabled() {
+    return button.isEnabled();
   }
 
   public void setEnabled(boolean enabled) {
