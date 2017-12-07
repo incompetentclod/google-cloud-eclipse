@@ -54,6 +54,7 @@ public class TextAndButtonComponent {
   }
 
   public boolean isEnabled() {
+    // the button enablement state should reflect reality
     return button.isEnabled();
   }
 
