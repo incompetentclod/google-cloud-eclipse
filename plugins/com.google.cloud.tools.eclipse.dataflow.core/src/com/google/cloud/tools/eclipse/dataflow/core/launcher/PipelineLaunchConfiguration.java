@@ -37,13 +37,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
 
 /**
- * A POJO that contains options specific to launching a dataflow pipeline.
+ * A POJO that contains options specific to launching a dataflow pipeline. Force having a project
+ * and major version as it doesn't make sense to launch without.
  */
 public class PipelineLaunchConfiguration {
   /**
@@ -51,7 +51,6 @@ public class PipelineLaunchConfiguration {
    */
   static final Set<String> PROVIDED_PROPERTY_NAMES = ImmutableSet.of("runner");
 
-  private final IProject project;
   private final MajorVersion majorVersion;
 
   private PipelineRunner runner;
@@ -62,10 +61,10 @@ public class PipelineLaunchConfiguration {
   /**
    * Construct a DataflowPipelineLaunchConfiguration from the provided {@link ILaunchConfiguration}.
    */
-  public static PipelineLaunchConfiguration fromLaunchConfiguration(IProject project,
-      MajorVersion majorVersion, ILaunchConfiguration launchConfiguration) throws CoreException {
+  public static PipelineLaunchConfiguration fromLaunchConfiguration(MajorVersion majorVersion,
+      ILaunchConfiguration launchConfiguration) throws CoreException {
     PipelineLaunchConfiguration configuration =
-        new PipelineLaunchConfiguration(project, majorVersion);
+        new PipelineLaunchConfiguration(majorVersion);
     configuration.setValuesFromLaunchConfiguration(launchConfiguration);
     return configuration;
   }
@@ -81,10 +80,8 @@ public class PipelineLaunchConfiguration {
 
   /** Create a new pipeline launch configuration with no default runner. */
   @VisibleForTesting
-  PipelineLaunchConfiguration(IProject project, MajorVersion majorVersion) {
-    Preconditions.checkNotNull(project);
+  PipelineLaunchConfiguration(MajorVersion majorVersion) {
     Preconditions.checkNotNull(majorVersion);
-    this.project = project;
     this.majorVersion = majorVersion;
   }
 
@@ -126,10 +123,6 @@ public class PipelineLaunchConfiguration {
     this.useDefaultLaunchOptions = useDefaultLaunchOptions;
   }
 
-  public IProject getProject() {
-    return project;
-  }
-
   public MajorVersion getMajorVersion() {
     return majorVersion;
   }
@@ -142,8 +135,7 @@ public class PipelineLaunchConfiguration {
       return false;
     }
     PipelineLaunchConfiguration other = (PipelineLaunchConfiguration) obj;
-    return Objects.equals(project, other.project)
-        && Objects.equals(majorVersion, other.majorVersion)
+    return Objects.equals(majorVersion, other.majorVersion)
         && Objects.equals(argumentValues, other.argumentValues)
         && Objects.equals(runner, other.runner)
         && Objects.equals(userOptionsName, other.userOptionsName);
@@ -151,7 +143,7 @@ public class PipelineLaunchConfiguration {
 
   @Override
   public int hashCode() {
-    return Objects.hash(project, majorVersion, argumentValues, runner, userOptionsName);
+    return Objects.hash(majorVersion, argumentValues, runner, userOptionsName);
   }
 
   @Override

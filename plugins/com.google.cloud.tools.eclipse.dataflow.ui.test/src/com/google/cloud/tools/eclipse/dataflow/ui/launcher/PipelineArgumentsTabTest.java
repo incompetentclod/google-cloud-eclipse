@@ -243,9 +243,8 @@ public class PipelineArgumentsTabTest {
       tab.setLaunchConfigurationDialog(dialog);
       tab.createControl(shell);
 
-      PipelineLaunchConfiguration launchConfig =
-          PipelineLaunchConfiguration.fromLaunchConfiguration(mock(IProject.class),
-              testParameter.majorVersion, mock(ILaunchConfiguration.class));
+      PipelineLaunchConfiguration launchConfig = PipelineLaunchConfiguration
+          .fromLaunchConfiguration(testParameter.majorVersion, mock(ILaunchConfiguration.class));
       tab.updateRunnerButtons(launchConfig);
       Button runnerButton = getCheckedRunnerButton(shell);
       assertNotNull(runnerButton);

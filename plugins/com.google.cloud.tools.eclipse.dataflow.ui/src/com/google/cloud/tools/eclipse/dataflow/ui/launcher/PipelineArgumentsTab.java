@@ -111,6 +111,7 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   private final PipelineOptionsHierarchyFactory pipelineOptionsHierarchyFactory =
       new ClasspathPipelineOptionsHierarchyFactory();
 
+  private IProject project;
   private PipelineLaunchConfiguration launchConfiguration;
 
   /*
@@ -347,11 +348,13 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
     MajorVersion majorVersion = project == null || !project.isAccessible() ? null
         : dependencyManager.getProjectMajorVersion(project);
     PipelineLaunchConfiguration launchConfiguration = majorVersion == null ? null
-        : PipelineLaunchConfiguration.fromLaunchConfiguration(project, majorVersion, configuration);
-    if (Objects.equals(launchConfiguration, this.launchConfiguration)) {
+        : PipelineLaunchConfiguration.fromLaunchConfiguration(majorVersion, configuration);
+    if (Objects.equals(project, this.project)
+        && Objects.equals(launchConfiguration, this.launchConfiguration)) {
       // our features of interest are the same
       return false;
     }
+    this.project = project;
     this.launchConfiguration = launchConfiguration;
     updateHierarchy();
     return true;
@@ -412,22 +415,21 @@ public class PipelineArgumentsTab extends AbstractLaunchConfigurationTab {
   }
 
   private DataflowPreferences getPreferences() {
-    if (launchConfiguration != null && launchConfiguration.getProject().isAccessible()) {
-      return ProjectOrWorkspaceDataflowPreferences.forProject(launchConfiguration.getProject());
+    if (project != null && project.isAccessible()) {
+      return ProjectOrWorkspaceDataflowPreferences.forProject(project);
     } else {
       return ProjectOrWorkspaceDataflowPreferences.forWorkspace();
     }
   }
 
   private PipelineOptionsHierarchy getPipelineOptionsHierarchy(IProgressMonitor monitor) {
-    if (launchConfiguration != null && launchConfiguration.getProject().isAccessible()) {
+    if (project != null && project.isAccessible()) {
       try {
-        return pipelineOptionsHierarchyFactory.forProject(launchConfiguration.getProject(),
+        return pipelineOptionsHierarchyFactory.forProject(project,
             launchConfiguration.getMajorVersion(), monitor);
       } catch (PipelineOptionsRetrievalException e) {
-        DataflowUiPlugin.logWarning(
-            "Couldn't retrieve Pipeline Options Hierarchy for project %s", //$NON-NLS-1$
-            launchConfiguration.getProject());
+        DataflowUiPlugin.logWarning("Couldn't retrieve Pipeline Options Hierarchy for project %s", //$NON-NLS-1$
+            project);
         return pipelineOptionsHierarchyFactory.global(monitor);
       }
     }
