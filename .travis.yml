@@ -13,7 +13,7 @@ jdk: oraclejdk8
 env:
   matrix:
     # ECLIPSE_TARGET is the targeted platform: mars is the default target
-    # JAVA_RUNTIME specifies the execution runtime for tests; must match an <id> in .travis-toolchains.xml
+    # JAVA_RUNTIME specifies the execution runtime for tests; must match an <id> in .travisci/toolchains.xml
     # SWT_GTK3=0 to force GTK2 on Mars as its GTK3 support is buggy
     - JAVA_RUNTIME=JavaSE-1.7 SWT_GTK3=0
     - JAVA_RUNTIME=JavaSE-1.8 ECLIPSE_TARGET=neon
@@ -31,7 +31,7 @@ before_script:
   - sleep 3 # give metacity some time to start
 script: ./mvnw -V -B -Ptravis --fail-at-end verify ${MAVEN_FLAGS}
      ${ECLIPSE_TARGET:+-Declipse.target=${ECLIPSE_TARGET}}
-     --toolchains=.travis-toolchains.xml
+     --toolchains=.travisci/toolchains.xml
      -Dtoolchain.java.runtime=${JAVA_RUNTIME}
 addons:
   apt:
@@ -44,3 +44,11 @@ cache:
 after_success:
   # test req'd as we don't run coverage on all elements of the matrix
   - if [ -d build/jacoco/target ]; then bash <(curl -s https://codecov.io/bash); fi
+after_script:
+  # Upload build reports to our Google Cloud Storage bucket
+  - openssl aes-256-cbc -K $encrypted_42b011b17512_key -iv $encrypted_42b011b17512_iv
+    -in .travisci/travis-service-account.json.enc -out /tmp/travis-service-account.json -d
+  - gcloud auth activate-service-account --key-file=/tmp/travis-service-account.json
+  - mkdir build-results && .travisci/copy-test-targets plugins build-results
+  - gsutil -m cp -r build-results/*
+      gs://gcloud-eclipse-testing/build-results/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-{TRAVIS_OS_NAME}/
