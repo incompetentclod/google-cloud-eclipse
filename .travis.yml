@@ -19,11 +19,13 @@ env:
     - JAVA_RUNTIME=JavaSE-1.8 ECLIPSE_TARGET=neon
     - JAVA_RUNTIME=JavaSE-1.8 ECLIPSE_TARGET=oxygen MAVEN_FLAGS=-Pjacoco
   global:
-    - PATH=$PWD/google-cloud-sdk/bin:$PATH
+    - GCLOUDSDK=$HOME/google-cloud-sdk
+    - PATH=$GCLOUDSDK/bin:$PATH
     # Our maven build typically reports about 512m
     - MAVEN_OPTS=-Xmx700m
     - CLOUDSDK_CORE_DISABLE_USAGE_REPORTING=true
     - DISPLAY=:99.0
+    - GCSBUILDBUCKET=gs://gcloud-eclipse-testing
 before_script:
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
@@ -40,7 +42,7 @@ addons:
 cache:
   directories:
    - $HOME/.m2
-   - $HOME/google-cloud-sdk
+   - $GCLOUDSDK
 after_success:
   # test req'd as we don't run coverage on all elements of the matrix
   - if [ -d build/jacoco/target ]; then bash <(curl -s https://codecov.io/bash); fi
@@ -48,7 +50,20 @@ after_script:
   # Upload build reports to our Google Cloud Storage bucket
   - openssl aes-256-cbc -K $encrypted_42b011b17512_key -iv $encrypted_42b011b17512_iv
       -in .travisci/travis-service-account.json.enc -out /tmp/travis-service-account.json -d
-  - $PWD/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=/tmp/travis-service-account.json
-  - mkdir build-results && .travisci/copy-test-targets.sh plugins build-results
-  - $PWD/google-cloud-sdk/bin/gsutil -m cp -r build-results/*
-      gs://gcloud-eclipse-testing/build-results/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-{TRAVIS_OS_NAME}/
+  - $GCLOUDSDK/bin/gcloud auth activate-service-account --key-file=/tmp/travis-service-account.json
+  # Copy surefire-reports and screenshots
+  # --include '*/'                   include all directories
+  # --include 'surefire-reports/**'  include contents of surefire-reports
+  # --include 'screenshots/**'       include contents of screenshots
+  # --exclude '*'                    exclude all other files
+  - $GCLOUDSDK/bin/gsutil -m rsync -raR --prune-empty-dirs
+      --include '*/'
+      --include 'surefire-reports/**' --include 'screenshots/**'
+      --exclude '*'
+      plugins
+      $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-{TRAVIS_OS_NAME}/build-results
+  # Copy build results (if successul)
+  - $GCLOUDSDK/bin/gsutil -m rsync -ra --prune-empty-dirs
+      gcp-repo/target/repository
+      $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-{TRAVIS_OS_NAME}/repository
+

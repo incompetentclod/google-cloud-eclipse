@@ -12,15 +12,26 @@ as changes are made to the Travis images.
 
 The .travis.yml is configured to upload build reports and test
 artifacts, like SWTBot `screenshots/` and `surefire-reports/`, to
-a GCS bucket.
+a GCS bucket.  The bucket can be accessed at:
+
+   https://console.cloud.google.com/storage/browser/BUCKET
+
+### Configuring Public Access
+
+[source](https://cloud.google.com/storage/docs/access-control/making-data-public#buckets)
+
+```
+$ gsutil iam ch allUsers:objectViewer gs://BUCKET
+```
 
 ### Configuring Auto-Deletion for the GCS Bucket
 
-`gcloud-eclipse-testing.lifecycle.json` provides an auto-deletion configuration
-policy suitable for a GCS bucket hosting the build reports.  It should be installed
-with:
+`gcs.lifecycle.json` provides an [auto-deletion configuration
+policy](https://cloud.google.com/storage/docs/managing-lifecycles#delete_an_object)
+suitable for a GCS bucket hosting the build reports.  It should be
+installed with:
 
 ```
-$ gsutil lifecycle set .travisci/gcloud-eclipse-testing.lifecycle.json gs://gcloud-eclipse-testing
+$ gsutil lifecycle set .travisci/gcs.lifecycle.json gs://BUCKET
 ```
 
