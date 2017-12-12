@@ -52,18 +52,13 @@ after_script:
       -in .travisci/travis-service-account.json.enc -out /tmp/travis-service-account.json -d
   - $GCLOUDSDK/bin/gcloud auth activate-service-account --key-file=/tmp/travis-service-account.json
   # Copy surefire-reports and screenshots
-  # --include '*/'                   include all directories
-  # --include 'surefire-reports/**'  include contents of surefire-reports
-  # --include 'screenshots/**'       include contents of screenshots
-  # --exclude '*'                    exclude all other files
-  - $GCLOUDSDK/bin/gsutil -m rsync -raR --prune-empty-dirs
-      --include '*/'
-      --include 'surefire-reports/**' --include 'screenshots/**'
-      --exclude '*'
-      plugins
+  - mkdir build-results && .travisci/copy-test-results.sh plugins build-results
+  - $GCLOUDSDK/bin/gsutil -m cp -r build-results
       $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-{TRAVIS_OS_NAME}/build-results
   # Copy build results (if successul)
-  - $GCLOUDSDK/bin/gsutil -m rsync -ra --prune-empty-dirs
-      gcp-repo/target/repository
-      $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-{TRAVIS_OS_NAME}/repository
+  - if [ -d gcp-repo/target/repository ]; then
+      $GCLOUDSDK/bin/gsutil -m cp -r
+        gcp-repo/target/repository
+        $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-{TRAVIS_OS_NAME}/repository;
+    fi
 
