@@ -1,5 +1,9 @@
 sudo: false
 language: java
+addons:
+  apt:
+    packages:
+      - metacity
 before_install:
   # change reference from now-defunct maven repository (#1406)
   - sed -i.bak -e 's|https://nexus.codehaus.org/snapshots/|https://oss.sonatype.org/content/repositories/codehaus-snapshots/|g' ~/.m2/settings.xml
@@ -35,10 +39,6 @@ script: ./mvnw -V -B -Ptravis --fail-at-end verify ${MAVEN_FLAGS}
      ${ECLIPSE_TARGET:+-Declipse.target=${ECLIPSE_TARGET}}
      --toolchains=.travisci/toolchains.xml
      -Dtoolchain.java.runtime=${JAVA_RUNTIME}
-addons:
-  apt:
-    packages:
-      - metacity
 cache:
   directories:
    - $HOME/.m2
@@ -53,12 +53,15 @@ after_script:
   - $GCLOUDSDK/bin/gcloud auth activate-service-account --key-file=/tmp/travis-service-account.json
   # Copy surefire-reports and screenshots
   - mkdir build-results && .travisci/copy-test-results.sh plugins build-results
-  - $GCLOUDSDK/bin/gsutil -m cp -r build-results
-      $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-{TRAVIS_OS_NAME}/build-results
-  # Copy build results (if successul)
-  - if [ -d gcp-repo/target/repository ]; then
-      $GCLOUDSDK/bin/gsutil -m cp -r
-        gcp-repo/target/repository
-        $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-{TRAVIS_OS_NAME}/repository;
+  - $GCLOUDSDK/bin/gsutil -m -q
+      cp -r -z 'txt,xml,html' -a public-read
+        build-results
+        $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-${TRAVIS_OS_NAME}/build-results
+  # Copy build results (if successul; for only one element of build matrix)
+  - if [ -d gcp-repo/target/repository -a -d build/jacoco/target ]; then
+      $GCLOUDSDK/bin/gsutil -m -q
+        cp -r -z 'txt,xml,html' -a public-read
+          gcp-repo/target/repository
+          $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/repository;
     fi
 
