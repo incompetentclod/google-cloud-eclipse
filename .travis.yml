@@ -47,8 +47,8 @@ after_success:
 after_script:
   # Upload build reports to our Google Cloud Storage bucket
   - openssl aes-256-cbc -K $encrypted_42b011b17512_key -iv $encrypted_42b011b17512_iv
-    -in .travisci/travis-service-account.json.enc -out /tmp/travis-service-account.json -d
-  - gcloud auth activate-service-account --key-file=/tmp/travis-service-account.json
-  - mkdir build-results && .travisci/copy-test-targets plugins build-results
-  - gsutil -m cp -r build-results/*
+      -in .travisci/travis-service-account.json.enc -out /tmp/travis-service-account.json -d
+  - $PWD/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=/tmp/travis-service-account.json
+  - mkdir build-results && .travisci/copy-test-targets.sh plugins build-results
+  - $PWD/google-cloud-sdk/bin/gsutil -m cp -r build-results/*
       gs://gcloud-eclipse-testing/build-results/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-{TRAVIS_OS_NAME}/
