@@ -55,8 +55,8 @@ after_script:
   - mkdir build-results && .travisci/copy-test-results.sh plugins build-results
   - $GCLOUDSDK/bin/gsutil -m -q
       cp -r -z 'txt,xml,html' -a public-read
-        build-results
-        $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-${TRAVIS_OS_NAME}/build-results
+        build-results/
+        $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-${TRAVIS_OS_NAME}/
   # Copy build results (if successul; for only one element of build matrix)
   - if [ -d gcp-repo/target/repository -a -d build/jacoco/target ]; then
       $GCLOUDSDK/bin/gsutil -m -q

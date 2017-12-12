@@ -16,13 +16,8 @@ a GCS bucket.  The bucket can be accessed at:
 
    https://console.cloud.google.com/storage/browser/BUCKET
 
-### Configuring Public Access
-
-[source](https://cloud.google.com/storage/docs/access-control/making-data-public#buckets)
-
-```
-$ gsutil iam ch allUsers:objectViewer gs://BUCKET
-```
+Configuring the uploading requires creating a GCS bucket, and
+creating a service account with the _Storage Object Creator_ role.
 
 ### Configuring Auto-Deletion for the GCS Bucket
 
@@ -34,4 +29,16 @@ installed with:
 ```
 $ gsutil lifecycle set .travisci/gcs.lifecycle.json gs://BUCKET
 ```
+
+### Configuring the Service Account Key
+
+  1. Create a key for the service account from the [Cloud
+     Console](https://console.cloud.google.com/iam-admin/serviceaccounts)
+     with role _Storage > Storage Object Creator_.
+     Check the _Furnish a new private key_.  Click _Create_.
+     This will produce a JSON file.
+
+  2. Follow Travis-CI's [instructions for automatically encrypting
+     files](https://docs.travis-ci.com/user/encrypting-files/).
+     Replace the `$encrypted_XXXX_*` values in the `.travis.yml`.
 
