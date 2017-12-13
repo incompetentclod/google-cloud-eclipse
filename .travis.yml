@@ -23,13 +23,13 @@ env:
     - JAVA_RUNTIME=JavaSE-1.8 ECLIPSE_TARGET=neon
     - JAVA_RUNTIME=JavaSE-1.8 ECLIPSE_TARGET=oxygen MAVEN_FLAGS=-Pjacoco
   global:
-    - GCLOUDSDK=$HOME/google-cloud-sdk
-    - PATH=$GCLOUDSDK/bin:$PATH
+    - CLOUD_SDK_HOME=$HOME/google-cloud-sdk
+    - PATH=$CLOUD_SDK_HOME/bin:$PATH
     # Our maven build typically reports about 512m
     - MAVEN_OPTS=-Xmx700m
     - CLOUDSDK_CORE_DISABLE_USAGE_REPORTING=true
     - DISPLAY=:99.0
-    - GCSBUILDBUCKET=gs://gcloud-eclipse-testing
+    - GCS_BUILD_BUCKET=gs://gcloud-eclipse-testing
 before_script:
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
@@ -42,7 +42,7 @@ script: ./mvnw -V -B -Ptravis --fail-at-end verify ${MAVEN_FLAGS}
 cache:
   directories:
    - $HOME/.m2
-   - $GCLOUDSDK
+   - $CLOUD_SDK_HOME
 after_success:
   # test req'd as we don't run coverage on all elements of the matrix
   - if [ -d build/jacoco/target ]; then bash <(curl -s https://codecov.io/bash); fi
@@ -50,18 +50,19 @@ after_script:
   # Upload build reports to our Google Cloud Storage bucket
   - openssl aes-256-cbc -K $encrypted_42b011b17512_key -iv $encrypted_42b011b17512_iv
       -in .travisci/travis-service-account.json.enc -out /tmp/travis-service-account.json -d
-  - $GCLOUDSDK/bin/gcloud auth activate-service-account --key-file=/tmp/travis-service-account.json
+  - $CLOUD_SDK_HOME/bin/gcloud auth activate-service-account --key-file=/tmp/travis-service-account.json
   # Copy surefire-reports and screenshots
   - mkdir build-results && .travisci/copy-test-results.sh plugins build-results
-  - $GCLOUDSDK/bin/gsutil -m -q
+  - $CLOUD_SDK_HOME/bin/gsutil -m -q
       cp -r -z 'txt,xml,html' -a public-read
         build-results/*
-        $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-${TRAVIS_OS_NAME}/
-  # Copy build results (if successul; for only one element of build matrix)
+        $GCS_BUILD_BUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-${TRAVIS_OS_NAME}/
+  # Copy build results (if successul; testing jacoco coverage ensures
+  # only performed for one element of build matrix)
   - if [ -d gcp-repo/target/repository -a -d build/jacoco/target ]; then
-      $GCLOUDSDK/bin/gsutil -m -q
+      $CLOUD_SDK_HOME/bin/gsutil -m -q
         cp -r -z 'txt,xml,html' -a public-read
           gcp-repo/target/repository
-          $GCSBUILDBUCKET/travis/${TRAVIS_BUILD_NUMBER}/repository;
+          $GCS_BUILD_BUCKET/travis/${TRAVIS_BUILD_NUMBER}/repository;
     fi
 

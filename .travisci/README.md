@@ -12,7 +12,8 @@ as changes are made to the Travis images.
 
 The .travis.yml is configured to upload build reports and test
 artifacts, like SWTBot `screenshots/` and `surefire-reports/`, to
-a GCS bucket.  The bucket can be accessed at:
+a GCS bucket.  These artifacts are publicly accessible (via
+`gsutil cp -a public-read`).  The bucket can be accessed at:
 
    https://console.cloud.google.com/storage/browser/BUCKET
 
@@ -42,3 +43,5 @@ $ gsutil lifecycle set .travisci/gcs.lifecycle.json gs://BUCKET
      files](https://docs.travis-ci.com/user/encrypting-files/).
      Replace the `$encrypted_XXXX_*` values in the `.travis.yml`.
 
+  3. Commit the result and push.  Verify that the next build
+     pushes build bits to the configured bucket.
