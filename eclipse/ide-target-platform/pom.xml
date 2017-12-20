@@ -13,6 +13,11 @@
   <version>0.1.0-SNAPSHOT</version>
   <packaging>eclipse-repository</packaging>
 
+  <properties>
+    <!-- this is not a deployable artifact -->
+    <maven.install.skip>true</maven.install.skip>
+  </properties>
+
   <build>
     <plugins>
       <plugin>
@@ -21,6 +26,7 @@
         <version>${tycho.version}</version>
         <configuration>
           <includeAllDependencies>true</includeAllDependencies>
+          <skipArchive>true</skipArchive>
         </configuration>
       </plugin>
     </plugins>
