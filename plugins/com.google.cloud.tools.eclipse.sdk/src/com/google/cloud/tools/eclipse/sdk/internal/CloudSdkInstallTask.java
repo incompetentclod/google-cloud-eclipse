@@ -30,15 +30,12 @@ import com.google.cloud.tools.managedcloudsdk.install.SdkInstallerException;
 import com.google.cloud.tools.managedcloudsdk.install.UnknownArchiveTypeException;
 import com.google.cloud.tools.managedcloudsdk.update.SdkUpdater;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.Callable;
 
 /**
- * Implementation is not thread-safe. {@code #run()} should not be executing concurrently.
+ * Implementation is not thread-safe. {@code #call()} should not be executing concurrently.
  */
-public class CloudSdkInstallTask implements Runnable {
-
-  private static final Logger logger = Logger.getLogger(CloudSdkInstallTask.class.getName());
+public class CloudSdkInstallTask implements Callable<Boolean> {
 
   private final ManagedCloudSdk managedSdk;
 
@@ -47,7 +44,8 @@ public class CloudSdkInstallTask implements Runnable {
   }
 
   @Override
-  public void run() {
+  public Boolean call() throws ManagedSdkVerificationException, IOException, InterruptedException,
+      SdkInstallerException, CommandExecutionException, CommandExitException {
     System.out.println("Install task started.");
     try {
       if (!managedSdk.isInstalled()) {
@@ -72,9 +70,6 @@ public class CloudSdkInstallTask implements Runnable {
         System.out.println("Update complete.");
       }
 
-    } catch (InterruptedException | IOException | SdkInstallerException | CommandExecutionException
-        | CommandExitException | ManagedSdkVerificationException e) {
-      logger.log(Level.SEVERE, "Failed to install Cloud SDK automatically.", e);
     } catch (UnsupportedOsException e) {
       throw new RuntimeException("Cloud Tools for Eclipse supports Windows, Linux, and Mac only.");
     } catch (ManagedSdkVersionMismatchException e) {
@@ -83,6 +78,7 @@ public class CloudSdkInstallTask implements Runnable {
       throw new RuntimeException("Never thrown.");
     }
     System.out.println("Install task finished.");
+    return true;
   }
 
   private static class NoOpMessageListener implements MessageListener {
@@ -90,6 +86,5 @@ public class CloudSdkInstallTask implements Runnable {
     public void message(String rawString) {
       // Do nothing.
     }
-
   }
 }

@@ -17,19 +17,15 @@
 package com.google.cloud.tools.eclipse.sdk;
 
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdk;
-import com.google.cloud.tools.eclipse.sdk.internal.CloudSdkInstallTask;
+import com.google.cloud.tools.eclipse.sdk.internal.CloudSdkInstallJob;
 import com.google.cloud.tools.managedcloudsdk.ManagedCloudSdk;
 import com.google.cloud.tools.managedcloudsdk.ManagedSdkVerificationException;
 import com.google.cloud.tools.managedcloudsdk.ManagedSdkVersionMismatchException;
 import com.google.cloud.tools.managedcloudsdk.UnsupportedOsException;
 import com.google.cloud.tools.managedcloudsdk.components.SdkComponent;
 import java.nio.file.Path;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class CloudSdkManager {
-
-  private static final ExecutorService serialExecutor = Executors.newSingleThreadExecutor();
 
   /**
    * Returns {@code CloudSdk} only if there exists an up-to-date Cloud SDK with the App Engine Java
@@ -49,21 +45,17 @@ public class CloudSdkManager {
   public static CloudSdk getCloudSdk() throws ManagedSdkVerificationException {
     try {
       ManagedCloudSdk managedSdk = ManagedCloudSdk.newManagedSdk();
-      if (managedSdk.isInstalled()
-          && managedSdk.hasComponent(SdkComponent.APP_ENGINE_JAVA)
-          && managedSdk.isUpToDate()) {
-        System.out.println("Found the Cloud SDK.");
-        Path sdkHome = managedSdk.getSdkHome();
-        CloudSdk sdk = new CloudSdk.Builder().sdkPath(sdkHome).build();
-        return sdk;
+      if (!managedSdk.isInstalled()
+          || !managedSdk.hasComponent(SdkComponent.APP_ENGINE_JAVA)
+          || !managedSdk.isUpToDate()) {
+        new CloudSdkInstallJob(managedSdk).schedule();
+        return null;
       }
 
-      // TODO: we need progress reporting. One way is to use the Eclipse job framework. Note that,
-      // even when using the job framework, we'll still need to run the install task via a thread
-      // (e.g., using an Executor like this) due to the design of appengine-plugins-core that
-      // require Java thread interruption to cancel installation.
-      serialExecutor.submit(new CloudSdkInstallTask(managedSdk));
-      return null;
+      System.out.println("Found the Cloud SDK.");
+      Path sdkHome = managedSdk.getSdkHome();
+      CloudSdk sdk = new CloudSdk.Builder().sdkPath(sdkHome).build();
+      return sdk;
 
     } catch (UnsupportedOsException e) {
       throw new RuntimeException("Cloud Tools for Eclipse supports Windows, Linux, and Mac only.");
