@@ -17,6 +17,7 @@
 package com.google.cloud.tools.eclipse.sdk;
 
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdk;
+import com.google.cloud.tools.eclipse.sdk.internal.CloudSdkInstallTask;
 import com.google.cloud.tools.managedcloudsdk.ManagedCloudSdk;
 import com.google.cloud.tools.managedcloudsdk.ManagedSdkVerificationException;
 import com.google.cloud.tools.managedcloudsdk.ManagedSdkVersionMismatchException;
@@ -31,9 +32,10 @@ public class CloudSdkManager {
   private static final ExecutorService serialExecutor = Executors.newSingleThreadExecutor();
 
   /**
-   * Returns {@code CloudSdk} if there exists an up-to-date Cloud SDK with the App Engine Java
+   * Returns {@code CloudSdk} only if there exists an up-to-date Cloud SDK with the App Engine Java
    * component installed at the managed location. Otherwise, returns {@code null} after triggering a
-   * background installation task.
+   * background installation task. Callers who get {@code null} may need to try this method at later
+   * points.
    *
    * Note that even if the Cloud SDK is already installed, this method executes {@code gcloud}
    * twice externally to check components and versions, which may incur a noticeable delay. If
@@ -42,7 +44,7 @@ public class CloudSdkManager {
    * @return {@code CloudSdk} if there exists an up-to-date Cloud SDK with the App Engine Java
    *     component installed at the managed location; {@code null} otherwise
    * @throws ManagedSdkVerificationException if unable to verify SDK installation; possible causes
-   *     include corrupted binaries or a problem executing binaries
+   *     include corrupted installation or a problem executing binaries
    */
   public static CloudSdk getCloudSdk() throws ManagedSdkVerificationException {
     try {
@@ -56,6 +58,10 @@ public class CloudSdkManager {
         return sdk;
       }
 
+      // TODO: we need progress reporting. One way is to use the Eclipse job framework. Note that,
+      // even when using the job framework, we'll still need to run the install task via a thread
+      // (e.g., using an Executor like this) due to the design of appengine-plugins-core that
+      // require Java thread interruption to cancel installation.
       serialExecutor.submit(new CloudSdkInstallTask(managedSdk));
       return null;
 
