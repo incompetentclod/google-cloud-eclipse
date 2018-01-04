@@ -45,15 +45,23 @@ public class CloudSdkInstallJob extends Job {
 
   @Override
   protected IStatus run(IProgressMonitor monitor) {
-    Future<Boolean> installTask = serialExecutor.submit(new CloudSdkInstallTask(managedSdk));
+    Future<Void> installTask = serialExecutor.submit(new CloudSdkInstallTask(managedSdk));
 
     try {
       while (true) {
+        if (monitor.isCanceled()) {
+          // By the design of the appengine-plugins-core SDK downloader, cancelation support is
+          // implemented through the Java thread interruption facility.
+          boolean interruptThread = true;
+          installTask.cancel(interruptThread);
+          return Status.CANCEL_STATUS;
+        }
+
         try {
           installTask.get(1, TimeUnit.SECONDS);
           return Status.OK_STATUS;
         } catch (TimeoutException e) {
-          // Install still in progress. Check completion again.
+          // Install still in progress. Just check completion again.
         }
       }
     } catch (InterruptedException e) {

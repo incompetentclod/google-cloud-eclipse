@@ -35,7 +35,7 @@ import java.util.concurrent.Callable;
 /**
  * Implementation is not thread-safe. {@code #call()} should not be executing concurrently.
  */
-public class CloudSdkInstallTask implements Callable<Boolean> {
+public class CloudSdkInstallTask implements Callable<Void> {
 
   private final ManagedCloudSdk managedSdk;
 
@@ -44,7 +44,7 @@ public class CloudSdkInstallTask implements Callable<Boolean> {
   }
 
   @Override
-  public Boolean call() throws ManagedSdkVerificationException, IOException, InterruptedException,
+  public Void call() throws ManagedSdkVerificationException, IOException, InterruptedException,
       SdkInstallerException, CommandExecutionException, CommandExitException {
     System.out.println("Install task started.");
     try {
@@ -78,7 +78,7 @@ public class CloudSdkInstallTask implements Callable<Boolean> {
       throw new RuntimeException("Never thrown.");
     }
     System.out.println("Install task finished.");
-    return true;
+    return null;
   }
 
   private static class NoOpMessageListener implements MessageListener {
