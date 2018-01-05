@@ -20,7 +20,6 @@ import com.google.cloud.tools.eclipse.util.status.StatusUtil;
 import com.google.cloud.tools.managedcloudsdk.ManagedCloudSdk;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -35,20 +34,21 @@ import org.eclipse.core.runtime.jobs.Job;
  */
 public class CloudSdkInstallJob extends Job {
 
-  // Singleton executor with a single thread to run CloudSdkInstallTask serially.
-  private static final ExecutorService serialExecutor = Executors.newSingleThreadExecutor();
+  /** Scheduling rule to prevent running CloudSdkInstallTask concurrently. */
+  private static final MutexRule MUTEX_RULE = new MutexRule();
 
   private final ManagedCloudSdk managedSdk;
 
   public CloudSdkInstallJob(ManagedCloudSdk managedSdk) {
     super("Installing the Google Cloud SDK... (may take up to several minutes)");
+    setRule(MUTEX_RULE);
     this.managedSdk = managedSdk;
   }
 
   @Override
   protected IStatus run(IProgressMonitor monitor) {
     CloudSdkInstallTask installTask = new CloudSdkInstallTask(managedSdk, monitor);
-    Future<Void> futureTask = serialExecutor.submit(installTask);
+    Future<Void> futureTask = Executors.newSingleThreadExecutor().submit(installTask);
 
     try {
       while (true) {
