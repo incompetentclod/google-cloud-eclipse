@@ -82,7 +82,6 @@ public class CloudSdkInstallTask implements Callable<Void> {
     } catch (UnknownArchiveTypeException e) {
       throw new RuntimeException("Never thrown.");
     }
-    System.out.println("Install task finished.");
     return null;
   }
 

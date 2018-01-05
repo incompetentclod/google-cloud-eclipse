@@ -18,6 +18,7 @@ package com.google.cloud.tools.eclipse.sdk.internal;
 
 import com.google.cloud.tools.eclipse.util.status.StatusUtil;
 import com.google.cloud.tools.managedcloudsdk.ManagedCloudSdk;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +35,7 @@ import org.eclipse.core.runtime.jobs.Job;
  */
 public class CloudSdkInstallJob extends Job {
 
+  // Singleton executor with a single thread to run CloudSdkInstallTask serially.
   private static final ExecutorService serialExecutor = Executors.newSingleThreadExecutor();
 
   private final ManagedCloudSdk managedSdk;
@@ -65,10 +67,10 @@ public class CloudSdkInstallJob extends Job {
           // Install still in progress. Just check completion again.
         }
       }
-    } catch (InterruptedException e) {
+    } catch (CancellationException | InterruptedException e) {
       return Status.CANCEL_STATUS;
     } catch (ExecutionException e) {
-      return StatusUtil.error(this, e.getLocalizedMessage(), e);
+      return StatusUtil.error(this, "Failed to install the Google Cloud SDK.", e);
     }
   }
 }

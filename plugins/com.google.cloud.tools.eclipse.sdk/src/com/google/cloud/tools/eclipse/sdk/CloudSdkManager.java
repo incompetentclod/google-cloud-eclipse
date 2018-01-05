@@ -33,9 +33,9 @@ public class CloudSdkManager {
    * background installation task. Callers who get {@code null} may need to try this method at later
    * points.
    *
-   * Note that even if the Cloud SDK is already installed, this method executes {@code gcloud}
-   * twice externally to check components and versions, which may incur a noticeable delay. If
-   * possible, avoid calling the method repetitively.
+   * Note that even if the Cloud SDK is already installed, this method executes {@code gcloud} twice
+   * externally to check components and versions, which may incur a noticeable delay. If possible,
+   * avoid unnecessary repetitive calls.
    *
    * @return {@code CloudSdk} if there exists an up-to-date Cloud SDK with the App Engine Java
    *     component installed at the managed location; {@code null} otherwise
@@ -52,7 +52,6 @@ public class CloudSdkManager {
         return null;
       }
 
-      System.out.println("Found the Cloud SDK.");
       Path sdkHome = managedSdk.getSdkHome();
       CloudSdk sdk = new CloudSdk.Builder().sdkPath(sdkHome).build();
       return sdk;
