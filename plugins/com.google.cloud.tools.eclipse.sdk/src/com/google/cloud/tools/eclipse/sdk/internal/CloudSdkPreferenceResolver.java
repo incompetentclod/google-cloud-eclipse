@@ -17,16 +17,14 @@
 package com.google.cloud.tools.eclipse.sdk.internal;
 
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdkResolver;
-
-import org.eclipse.jface.preference.IPreferenceStore;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.eclipse.jface.preference.IPreferenceStore;
 
 /**
  * Google Cloud SDK locator that uses the user-configured location preference.
  */
-public class CloudSdkPreferenceResolver implements CloudSdkResolver {
+class CloudSdkPreferenceResolver implements CloudSdkResolver {
   private IPreferenceStore preferences = PreferenceConstants.getPreferenceStore();
 
   public CloudSdkPreferenceResolver() {}

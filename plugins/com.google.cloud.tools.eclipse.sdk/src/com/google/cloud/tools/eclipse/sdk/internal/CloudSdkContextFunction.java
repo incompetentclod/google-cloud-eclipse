@@ -35,7 +35,7 @@ import org.eclipse.e4.core.contexts.IEclipseContext;
  * mechanisms. As the configured location may change, we fetch the path from the context to ensure
  * that we recompute the CloudSdk instance on path change.
  */
-public class CloudSdkContextFunction extends ContextFunction {
+class CloudSdkContextFunction extends ContextFunction {
   private static final Logger logger = Logger.getLogger(CloudSdkContextFunction.class.getName());
 
   @SuppressWarnings("restriction")

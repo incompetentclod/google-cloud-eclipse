@@ -34,8 +34,8 @@ public class CloudSdkManager {
    * points.
    *
    * Note that even if the Cloud SDK is already installed, this method executes {@code gcloud} twice
-   * externally to check components and versions, which may incur a noticeable delay. If possible,
-   * avoid unnecessary repetitive calls.
+   * to check components and versions, which may incur a noticeable delay. If possible, avoid
+   * unnecessary repetitive calls.
    *
    * @return {@code CloudSdk} if there exists an up-to-date Cloud SDK with the App Engine Java
    *     component installed at the managed location; {@code null} otherwise

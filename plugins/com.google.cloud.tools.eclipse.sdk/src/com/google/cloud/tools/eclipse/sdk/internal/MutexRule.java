@@ -22,7 +22,7 @@ import org.eclipse.core.runtime.jobs.ISchedulingRule;
  * Scheduling rule to prevent two jobs from running concurrently. Set this to jobs that need to run
  * serially.
  */
-public class MutexRule implements ISchedulingRule {
+class MutexRule implements ISchedulingRule {
 
   @Override
   public boolean contains(ISchedulingRule rule) {

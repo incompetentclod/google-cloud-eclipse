@@ -37,7 +37,7 @@ import org.eclipse.core.runtime.SubMonitor;
 /**
  * Implementation is not thread-safe. {@code #call()} should not be executing concurrently.
  */
-public class CloudSdkInstallTask implements Callable<Void> {
+class CloudSdkInstallTask implements Callable<Void> {
 
   private final ManagedCloudSdk managedSdk;
   private final IProgressMonitor monitor;

@@ -41,8 +41,8 @@ public class CloudSdkInstallJob extends Job {
 
   public CloudSdkInstallJob(ManagedCloudSdk managedSdk) {
     super("Installing the Google Cloud SDK... (may take up to several minutes)");
-    setRule(MUTEX_RULE);
     this.managedSdk = managedSdk;
+    setRule(MUTEX_RULE);
   }
 
   @Override
