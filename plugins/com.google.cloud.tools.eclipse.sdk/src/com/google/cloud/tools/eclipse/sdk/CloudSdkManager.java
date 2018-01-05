@@ -28,28 +28,29 @@ import java.nio.file.Path;
 public class CloudSdkManager {
 
   /**
-   * Returns {@code CloudSdk} only if there exists an up-to-date Cloud SDK with the App Engine Java
-   * component installed at the managed location. Otherwise, returns {@code null} after triggering a
-   * background installation task. Callers who get {@code null} may need to try this method at later
-   * points.
+   * Returns {@code CloudSdk} if there exists an up-to-date Cloud SDK with the App Engine Java
+   * component installed at the managed location. Otherwise, throws {@code
+   * CloudSdkNotReadyException} after triggering a background installation task. Callers who get the
+   * exception may need to try this method at later points.
    *
    * Note that even if the Cloud SDK is already installed, this method executes {@code gcloud} twice
    * to check components and versions, which may incur a noticeable delay. If possible, avoid
    * unnecessary repetitive calls.
    *
-   * @return {@code CloudSdk} if there exists an up-to-date Cloud SDK with the App Engine Java
-   *     component installed at the managed location; {@code null} otherwise
+   * @throws CloudSdkNotReadyException if an up-to-date Cloud SDK with the App Engine Java component
+   *     is not yet installed at the managed location
    * @throws ManagedSdkVerificationException if unable to verify SDK installation; possible causes
    *     include corrupted installation or a problem executing binaries
    */
-  public static CloudSdk getCloudSdk() throws ManagedSdkVerificationException {
+  public static CloudSdk getCloudSdk()
+      throws CloudSdkNotReadyException, ManagedSdkVerificationException {
     try {
       ManagedCloudSdk managedSdk = ManagedCloudSdk.newManagedSdk();
       if (!managedSdk.isInstalled()
           || !managedSdk.hasComponent(SdkComponent.APP_ENGINE_JAVA)
           || !managedSdk.isUpToDate()) {
         new CloudSdkInstallJob(managedSdk).schedule();
-        return null;
+        throw new CloudSdkNotReadyException();
       }
 
       Path sdkHome = managedSdk.getSdkHome();
