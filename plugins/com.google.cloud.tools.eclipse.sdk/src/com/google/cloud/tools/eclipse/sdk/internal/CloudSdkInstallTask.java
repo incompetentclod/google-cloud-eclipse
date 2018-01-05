@@ -31,6 +31,8 @@ import com.google.cloud.tools.managedcloudsdk.install.UnknownArchiveTypeExceptio
 import com.google.cloud.tools.managedcloudsdk.update.SdkUpdater;
 import java.io.IOException;
 import java.util.concurrent.Callable;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.SubMonitor;
 
 /**
  * Implementation is not thread-safe. {@code #call()} should not be executing concurrently.
@@ -38,36 +40,39 @@ import java.util.concurrent.Callable;
 public class CloudSdkInstallTask implements Callable<Void> {
 
   private final ManagedCloudSdk managedSdk;
+  private final IProgressMonitor monitor;
 
-  public CloudSdkInstallTask(ManagedCloudSdk managedSdk) {
+  public CloudSdkInstallTask(ManagedCloudSdk managedSdk, IProgressMonitor monitor) {
     this.managedSdk = managedSdk;
+    this.monitor = monitor;
   }
 
   @Override
   public Void call() throws ManagedSdkVerificationException, IOException, InterruptedException,
       SdkInstallerException, CommandExecutionException, CommandExitException {
-    System.out.println("Install task started.");
+    SubMonitor subMonitor = SubMonitor.convert(monitor, 50);
+
     try {
       if (!managedSdk.isInstalled()) {
-        System.out.println("Installing the SDK.");
+        subMonitor.setTaskName("Installing the core SDK...");
         SdkInstaller installer = managedSdk.newInstaller();
         installer.install(new NoOpMessageListener());
-        System.out.println("SDK installation complete.");
+        subMonitor.worked(10);
       }
 
       if (!managedSdk.hasComponent(SdkComponent.APP_ENGINE_JAVA)) {
-        System.out.println("Installing the App Engine Java component.");
+        subMonitor.setTaskName("Installing the App Engine Java component...");
         SdkComponentInstaller componentInstaller = managedSdk.newComponentInstaller();
         componentInstaller.installComponent(
             SdkComponent.APP_ENGINE_JAVA, new NoOpMessageListener());
-        System.out.println("Component installation complete.");
+        subMonitor.worked(30);
       }
 
       if (!managedSdk.isUpToDate()) {
-        System.out.println("Updating the SDK.");
+        subMonitor.setTaskName("Updating the SDK...");
         SdkUpdater updater = managedSdk.newUpdater();
         updater.update(new NoOpMessageListener());
-        System.out.println("Update complete.");
+        subMonitor.worked(10);
       }
 
     } catch (UnsupportedOsException e) {
