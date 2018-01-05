@@ -24,7 +24,7 @@ import org.eclipse.jface.preference.IPreferenceStore;
 /**
  * Google Cloud SDK locator that uses the user-configured location preference.
  */
-class CloudSdkPreferenceResolver implements CloudSdkResolver {
+public class CloudSdkPreferenceResolver implements CloudSdkResolver {
   private IPreferenceStore preferences = PreferenceConstants.getPreferenceStore();
 
   public CloudSdkPreferenceResolver() {}
