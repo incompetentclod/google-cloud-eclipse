@@ -57,8 +57,8 @@ after_script:
       cp -r -z 'txt,xml,html' -a public-read
         build-results/*
         $GCS_BUILD_BUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-${TRAVIS_OS_NAME}/
-  # Copy build results (if successul; testing jacoco coverage ensures
-  # only performed for one element of build matrix)
+  # Copy build results (if successful; conditioned on jacoco as we ensure
+  # jacoco is only performed for a single element of build matrix)
   - if [ -d gcp-repo/target/repository -a -d build/jacoco/target ]; then
       $CLOUD_SDK_HOME/bin/gsutil -m -q
         cp -r -z 'txt,xml,html' -a public-read
