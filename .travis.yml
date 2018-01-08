@@ -53,16 +53,16 @@ after_script:
   - $CLOUD_SDK_HOME/bin/gcloud auth activate-service-account --key-file=/tmp/travis-service-account.json
   # Copy surefire-reports and screenshots
   - mkdir build-results && .travisci/copy-test-results.sh plugins build-results
-  - $CLOUD_SDK_HOME/bin/gsutil -m -q
-      cp -r -z 'txt,xml,html' -a public-read
-        build-results/*
-        $GCS_BUILD_BUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-${TRAVIS_OS_NAME}/
+  ###- $CLOUD_SDK_HOME/bin/gsutil -m -q
+  ###    cp -r -z 'txt,xml,html' -a public-read
+  ###      build-results/*
+  ###      $GCS_BUILD_BUCKET/travis/${TRAVIS_BUILD_NUMBER}/${TRAVIS_JOB_NUMBER}-${TRAVIS_OS_NAME}/
   # Copy build results (if successful; conditioned on jacoco as we ensure
   # jacoco is only performed for a single element of build matrix)
-  - if [ -d gcp-repo/target/repository -a -d build/jacoco/target ]; then
-      $CLOUD_SDK_HOME/bin/gsutil -m -q
-        cp -r -z 'txt,xml,html' -a public-read
-          gcp-repo/target/repository
-          $GCS_BUILD_BUCKET/travis/${TRAVIS_BUILD_NUMBER}/repository;
-    fi
+  ###- if [ -d gcp-repo/target/repository -a -d build/jacoco/target ]; then
+  ###    $CLOUD_SDK_HOME/bin/gsutil -m -q
+  ###      cp -r -z 'txt,xml,html' -a public-read
+  ###        gcp-repo/target/repository
+  ###        $GCS_BUILD_BUCKET/travis/${TRAVIS_BUILD_NUMBER}/repository;
+  ###  fi
 
