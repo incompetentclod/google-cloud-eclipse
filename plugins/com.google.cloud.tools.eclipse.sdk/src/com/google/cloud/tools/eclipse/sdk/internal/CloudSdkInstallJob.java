@@ -34,6 +34,8 @@ import org.eclipse.core.runtime.jobs.Job;
  */
 public class CloudSdkInstallJob extends Job {
 
+  public static final String JOB_FAMILY = CloudSdkInstallJob.class.getName();
+
   /** Scheduling rule to prevent running CloudSdkInstallTask concurrently. */
   private static final MutexRule MUTEX_RULE = new MutexRule();
 
@@ -42,6 +44,7 @@ public class CloudSdkInstallJob extends Job {
   public CloudSdkInstallJob(ManagedCloudSdk managedSdk) {
     super("Installing the Google Cloud SDK... (may take up to several minutes)");
     this.managedSdk = managedSdk;
+    setUser(true);
     setRule(MUTEX_RULE);
   }
 
@@ -72,5 +75,10 @@ public class CloudSdkInstallJob extends Job {
     } catch (ExecutionException e) {
       return StatusUtil.error(this, "Failed to install the Google Cloud SDK.", e);
     }
+  }
+
+  @Override
+  public boolean belongsTo(Object family) {
+    return JOB_FAMILY.equals(family);
   }
 }

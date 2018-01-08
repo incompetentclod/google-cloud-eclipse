@@ -24,6 +24,7 @@ import com.google.cloud.tools.managedcloudsdk.ManagedSdkVersionMismatchException
 import com.google.cloud.tools.managedcloudsdk.UnsupportedOsException;
 import com.google.cloud.tools.managedcloudsdk.components.SdkComponent;
 import java.nio.file.Path;
+import org.eclipse.core.runtime.jobs.Job;
 
 public class CloudSdkManager {
 
@@ -40,7 +41,8 @@ public class CloudSdkManager {
    * @throws CloudSdkNotReadyException if an up-to-date Cloud SDK with the App Engine Java component
    *     is not yet installed at the managed location
    * @throws ManagedSdkVerificationException if unable to verify SDK installation; possible causes
-   *     include corrupted installation or a problem executing binaries
+   *     include corrupted installation, a problem executing binaries, or {@code gcloud} execution
+   *     failing with an error
    */
   public static CloudSdk getCloudSdk()
       throws CloudSdkNotReadyException, ManagedSdkVerificationException {
@@ -49,7 +51,7 @@ public class CloudSdkManager {
       if (!managedSdk.isInstalled()
           || !managedSdk.hasComponent(SdkComponent.APP_ENGINE_JAVA)
           || !managedSdk.isUpToDate()) {
-        new CloudSdkInstallJob(managedSdk).schedule();
+        scheduleInstallJob(managedSdk);
         throw new CloudSdkNotReadyException();
       }
 
@@ -61,6 +63,13 @@ public class CloudSdkManager {
       throw new RuntimeException("Cloud Tools for Eclipse supports Windows, Linux, and Mac only.");
     } catch (ManagedSdkVersionMismatchException e) {
       throw new RuntimeException("This is never thrown because we always use LATEST.");
+    }
+  }
+
+  private static void scheduleInstallJob(ManagedCloudSdk managedSdk) {
+    Job[] jobs = Job.getJobManager().find(CloudSdkInstallJob.JOB_FAMILY);
+    if (jobs.length == 0) {  // Just a best effort; this cannot prevent concurrent scheduling.
+      new CloudSdkInstallJob(managedSdk).schedule();
     }
   }
 }
