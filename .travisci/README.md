@@ -37,10 +37,12 @@ $ gsutil lifecycle set .travisci/gcs.lifecycle.json gs://BUCKET
      Console](https://console.cloud.google.com/iam-admin/serviceaccounts)
      with role _Storage > Storage Object Creator_.
      Check the _Furnish a new private key_.  Click _Create_.
-     This will produce a JSON file.
+     This will produce a JSON file; rename it to `travis-service-account.json`.
 
   2. Follow Travis-CI's [instructions for automatically encrypting
-     files](https://docs.travis-ci.com/user/encrypting-files/).
+     files](https://docs.travis-ci.com/user/encrypting-files/) to encrypt
+     `travis-service-account.json` and place the result in
+     `.travisci/travis-service-account.json.enc`.
      Replace the `$encrypted_XXXX_*` values in the `.travis.yml`.
 
   3. Commit the result and push.  Verify that the next build
