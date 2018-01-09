@@ -51,7 +51,7 @@ public class AppEngineStandardProjectConvertCommandHandler extends AbstractHandl
       IFacetedProject facetedProject = ProjectFacetsManager.create(project,
           true /* convert to faceted project if necessary */, null /* no monitor here */);
       if (AppEngineStandardFacet.hasFacet(facetedProject)) {
-        throw new IllegalStateException("Convert menu enabled for App Engine projects");
+        throw new IllegalStateException("Convert menu enabled for App Engine standard projects");
       }
 
       AppEngineStandardProjectConvertJob job =
