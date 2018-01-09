@@ -18,7 +18,8 @@ package com.google.cloud.tools.eclipse.sdk.ui.preferences;
 
 import com.google.cloud.tools.appengine.api.AppEngineException;
 import com.google.cloud.tools.appengine.cloudsdk.CloudSdk;
-
+import java.io.File;
+import java.nio.file.Path;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.jface.window.IShellProvider;
@@ -26,31 +27,12 @@ import org.eclipse.jface.window.SameShellProvider;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.dialogs.PreferencesUtil;
 
-import java.io.File;
-import java.nio.file.Path;
-
 /**
  * A special Google Cloud SDK provider that will open the Cloud SDK
  * preference page if no location is found. Must be called from the
  * SWT UI Thread.
  */
 public class CloudSdkPrompter {
-
-  /**
-   * Return the Cloud SDK. If it cannot be found, prompt the user to specify its location. Like
-   * {@linkplain com.google.cloud.tools.appengine.cloudsdk.CloudSdk.Builder#build()} 
-   * the caller is responsible for validating the SDK location
-   * (if desired).
-   * <p>
-   * <b>Must be called from the SWT UI Thread.</b>
-   * </p>
-   * 
-   * @param shell the parent shell for any dialogs; may be {@code null}
-   * @return the Cloud SDK, or {@code null} if unspecified
-   */
-  public static CloudSdk getCloudSdk(Shell shell) {
-    return getCloudSdk(new SameShellProvider(shell));
-  }
 
   /**
    * Return the Cloud SDK. If it cannot be found, prompt the user to specify its location. Like
@@ -65,7 +47,7 @@ public class CloudSdkPrompter {
    * @param shellProvider an object to provide the parent shell for any dialogs; may be {@code null}
    * @return the Cloud SDK, or {@code null} if unspecified
    */
-  public static CloudSdk getCloudSdk(IShellProvider shellProvider) {
+  private static CloudSdk getCloudSdk(IShellProvider shellProvider) {
     try {
       return new CloudSdk.Builder().build();
     } catch (AppEngineException ex) {
@@ -109,7 +91,7 @@ public class CloudSdkPrompter {
    * @param shellProvider an object to provide the parent shell for any dialogs; may be {@code null}
    * @return the Cloud SDK location, or {@code null} if unspecified
    */
-  public static File getCloudSdkLocation(IShellProvider shellProvider) {
+  private static File getCloudSdkLocation(IShellProvider shellProvider) {
     CloudSdk sdk = getCloudSdk(shellProvider);
     if (sdk == null) {
       return null;
@@ -127,7 +109,7 @@ public class CloudSdkPrompter {
    * @param shellProvider an object that knows how to obtain a shell; may be {@code null}
    * @return true if the user appears to have configured the SDK, or false if the SDK is unavailable
    */
-  static boolean promptForSdk(IShellProvider shellProvider) {
+  private static boolean promptForSdk(IShellProvider shellProvider) {
     if (!MessageDialog.openQuestion(null, SdkUiMessages.getString("CloudSdkPrompter_0"),
         SdkUiMessages.getString("CloudSdkPrompter_1"))) {
       return false;

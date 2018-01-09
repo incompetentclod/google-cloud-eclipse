@@ -27,7 +27,6 @@ import com.google.cloud.tools.eclipse.sdk.ui.preferences.CloudSdkPrompter;
 import com.google.cloud.tools.eclipse.ui.util.WorkbenchUtil;
 import com.google.cloud.tools.eclipse.util.status.StatusUtil;
 import com.google.common.base.Preconditions;
-import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IAdaptable;
@@ -129,12 +128,7 @@ public abstract class AppEngineProjectWizard extends Wizard implements INewWizar
   @Override
   public void init(IWorkbench workbench, IStructuredSelection selection) {
     this.workbench = workbench;
-    if (config.getCloudSdkLocation() == null) {
-      File location = CloudSdkPrompter.getCloudSdkLocation(getShell());
-      // if the user doesn't provide the Cloud SDK then we'll error in performFinish() too
-      if (location != null) {
-        config.setCloudSdkLocation(location);
-      }
-    }
+    CloudSdkPrompter.getCloudSdkLocation(getShell());
+    // if the user doesn't provide the Cloud SDK then we'll show an error message page.
   }
 }
