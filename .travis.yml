@@ -63,7 +63,7 @@ after_script:
   - if [ -d gcp-repo/target/repository -a -d build/jacoco/target ]; then
       $CLOUD_SDK_HOME/bin/gsutil -m -q
         cp -r -z 'txt,xml,html' -a public-read
-          gcp-repo/target/repository
-          $GCS_BUILD_BUCKET/travis/${TRAVIS_BUILD_NUMBER}/repository;
+          gcp-repo/target/repository/*
+          $GCS_BUILD_BUCKET/travis/${TRAVIS_BUILD_NUMBER}/repository/;
     fi
 
