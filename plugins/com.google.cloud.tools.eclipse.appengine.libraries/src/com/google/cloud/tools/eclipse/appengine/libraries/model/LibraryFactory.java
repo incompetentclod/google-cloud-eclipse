@@ -107,7 +107,10 @@ class LibraryFactory {
         MavenCoordinates mavenCoordinates = getMavenCoordinates(
             libraryFileElement.getChildren(ELEMENT_NAME_MAVEN_COORDINATES));
         LibraryFile libraryFile = loadSingleFile(libraryFileElement, mavenCoordinates);
-        libraryFile.updateVersion();
+        // Pin servlet versions; update everything else
+        if (!libraryFile.getMavenCoordinates().getGroupId().startsWith("javax.servlet")) {
+          libraryFile.updateVersion();
+        }
         libraryFiles.add(libraryFile);
       }
     }
