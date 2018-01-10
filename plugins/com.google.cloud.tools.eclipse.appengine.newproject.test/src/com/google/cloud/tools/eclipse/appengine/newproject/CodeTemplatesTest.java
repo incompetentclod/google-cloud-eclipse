@@ -225,7 +225,14 @@ public class CodeTemplatesTest {
     DefaultArtifactVersion artifactVersion =
         new DefaultArtifactVersion(pluginVersion.getTextContent());
     DefaultArtifactVersion expected = new DefaultArtifactVersion("1.3.2");
-    Assert.assertTrue(artifactVersion.compareTo(expected ) >= 0);
+    Assert.assertTrue(artifactVersion.compareTo(expected) >= 0);
+    
+    String sdkVersion =
+        root.getElementsByTagName("appengine.api.sdk.version").item(0).getTextContent();
+    DefaultArtifactVersion sdkArtifactVersion =
+        new DefaultArtifactVersion(sdkVersion);
+    DefaultArtifactVersion expectedSdk = new DefaultArtifactVersion("1.9.60");
+    Assert.assertTrue(sdkVersion, sdkArtifactVersion.compareTo(expectedSdk) >= 0);    
   }
 
   private Document buildDocument(IFile xml)
