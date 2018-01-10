@@ -326,7 +326,8 @@ public class ProjectUtils {
           // }
           // }
         }
-      } while (!jobs.isEmpty() || buildErrorsChanging);
+      } while (!jobs.isEmpty() || buildErrorsChanging
+          || (!previousBuildErrors.isEmpty() && timer.elapsed(TimeUnit.SECONDS) < 60));
     } catch (CoreException | InterruptedException ex) {
       throw new RuntimeException(ex);
     }
