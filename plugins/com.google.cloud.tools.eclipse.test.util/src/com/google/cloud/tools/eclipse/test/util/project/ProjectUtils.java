@@ -142,30 +142,11 @@ public class ProjectUtils {
     // wait for any post-import operations too
     waitForProjects(projects);
     if (checkBuildErrors) {
-      waitUntilNoBuildError();
       // changed from specific projects to see all possible errors
       failIfBuildErrors("Imported projects have errors");
     }
 
     return projects;
-  }
-
-  private static void waitUntilNoBuildError() throws CoreException {
-    try {
-      Stopwatch elapsed = Stopwatch.createStarted();
-      while (true) {
-        Set<String> errors = getAllBuildErrors();
-        if (errors.isEmpty() || elapsed.elapsed(TimeUnit.SECONDS) > 300) {
-          return;
-        }
-        if (Display.getCurrent() != null) {
-          while (Display.getCurrent().readAndDispatch());
-        }
-        Thread.sleep(50);
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
   }
 
   /** Fail if there are any build errors on any project in the workspace. */
