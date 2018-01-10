@@ -98,7 +98,7 @@ public class CodeTemplatesTest {
     AppEngineProjectConfig config = new AppEngineProjectConfig();
     config.setUseMaven("my.project.group.id", "my-project-artifact-id", "98.76.54");
     CodeTemplates.materializeAppEngineStandardFiles(project, config, monitor);
-    validatePomXml();
+    validateStandardPomXml();
   }
 
   @Test
@@ -124,7 +124,7 @@ public class CodeTemplatesTest {
     AppEngineProjectConfig config = new AppEngineProjectConfig();
     config.setUseMaven("my.project.group.id", "my-project-artifact-id", "98.76.54");
     CodeTemplates.materializeAppEngineFlexFiles(project, config, monitor);
-    validatePomXml();
+    validateFlexPomXml();
   }
 
   private void validateNonConfigFiles(IFile mostImportant,
@@ -203,7 +203,19 @@ public class CodeTemplatesTest {
     }
   }
 
-  private void validatePomXml()
+  private void validateStandardPomXml()
+      throws ParserConfigurationException, SAXException, IOException, CoreException {
+    Element root = validatePom();
+    
+    String sdkVersion =
+        root.getElementsByTagName("appengine.api.sdk.version").item(0).getTextContent();
+    DefaultArtifactVersion sdkArtifactVersion =
+        new DefaultArtifactVersion(sdkVersion);
+    DefaultArtifactVersion expectedSdk = new DefaultArtifactVersion("1.9.60");
+    Assert.assertTrue(sdkVersion, sdkArtifactVersion.compareTo(expectedSdk) >= 0);    
+  }
+
+  private Element validatePom()
       throws ParserConfigurationException, SAXException, IOException, CoreException {
     IFile pomXml = project.getFile("pom.xml");
     Element root = buildDocument(pomXml).getDocumentElement();
@@ -226,13 +238,12 @@ public class CodeTemplatesTest {
         new DefaultArtifactVersion(pluginVersion.getTextContent());
     DefaultArtifactVersion expected = new DefaultArtifactVersion("1.3.2");
     Assert.assertTrue(artifactVersion.compareTo(expected) >= 0);
-    
-    String sdkVersion =
-        root.getElementsByTagName("appengine.api.sdk.version").item(0).getTextContent();
-    DefaultArtifactVersion sdkArtifactVersion =
-        new DefaultArtifactVersion(sdkVersion);
-    DefaultArtifactVersion expectedSdk = new DefaultArtifactVersion("1.9.60");
-    Assert.assertTrue(sdkVersion, sdkArtifactVersion.compareTo(expectedSdk) >= 0);    
+    return root;
+  }
+
+  private void validateFlexPomXml()
+      throws ParserConfigurationException, SAXException, IOException, CoreException {
+    validatePom();
   }
 
   private Document buildDocument(IFile xml)
