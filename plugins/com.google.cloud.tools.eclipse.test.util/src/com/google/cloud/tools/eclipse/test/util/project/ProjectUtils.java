@@ -150,11 +150,16 @@ public class ProjectUtils {
     return projects;
   }
 
-  private static void waitUntilNoBuildError() throws CoreException {
+  public static void waitUntilNoBuildError() throws CoreException {
+    IProject[] projects = getWorkspace().getRoot().getProjects();
+    waitUntilNoBuildError(projects);
+  }
+
+  public static void waitUntilNoBuildError(IProject... projects) throws CoreException {
     try {
       Stopwatch elapsed = Stopwatch.createStarted();
       while (true) {
-        Set<String> errors = getAllBuildErrors();
+        Set<String> errors = getAllBuildErrors(projects);
         if (errors.isEmpty() || elapsed.elapsed(TimeUnit.SECONDS) > 300) {
           return;
         }
