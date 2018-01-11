@@ -107,11 +107,7 @@ class LibraryFactory {
         MavenCoordinates mavenCoordinates = getMavenCoordinates(
             libraryFileElement.getChildren(ELEMENT_NAME_MAVEN_COORDINATES));
         LibraryFile libraryFile = loadSingleFile(libraryFileElement, mavenCoordinates);
-        // Pin servlets, JSP, and guava; update everything else
-        if (!libraryFile.getMavenCoordinates().getGroupId().startsWith("javax.servlet")
-            && !libraryFile.getMavenCoordinates().getArtifactId().equals("guava")) {
-          libraryFile.updateVersion();
-        }
+        libraryFile.updateVersion();
         libraryFiles.add(libraryFile);
       }
     }
@@ -138,6 +134,9 @@ class LibraryFactory {
   private static LibraryFile loadSingleFile(IConfigurationElement libraryFileElement,
       MavenCoordinates mavenCoordinates) throws URISyntaxException {
     LibraryFile libraryFile = new LibraryFile(mavenCoordinates);
+    if ("true".equalsIgnoreCase(libraryFileElement.getAttribute("pinned"))) {
+      libraryFile.setPinned(true);
+    }
     libraryFile.setFilters(getFilters(libraryFileElement.getChildren()));
     // todo do we really want these next two to be required?
     libraryFile.setSourceUri(

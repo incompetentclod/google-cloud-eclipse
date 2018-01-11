@@ -64,7 +64,8 @@
           name="Servlet API 2.5"
           group="servlet"
           siteUri="http://www.oracle.com/technetwork/java/javaee/servlet/index.html"
-          export="false">
+          export="false"
+          pinned="true">
       <libraryFile
             javadocUri="https://docs.oracle.com/cd/E17802_01/products/products/servlet/2.5/docs/servlet-2_5-mr2/">
         <mavenCoordinates
@@ -79,7 +80,8 @@
           group="servlet"
           name="Java Server Pages API 2.1"
           siteUri="http://www.oracle.com/technetwork/java/javaee/jsp/index.html"
-          export="false">
+          export="false"
+          pinned="true">
       <libraryFile
             javadocUri="http://docs.oracle.com/cd/E17802_01/products/products/jsp/2.1/docs/jsp-2_1-pfd2/">
         <mavenCoordinates
